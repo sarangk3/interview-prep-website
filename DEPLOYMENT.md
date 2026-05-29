@@ -25,7 +25,7 @@ Multiple-choice mode works without this variable.
 
 ## 4. Deploy
 
-Trigger the deployment. Vercel builds the project and provides a live URL. Subsequent pushes to the connected branch redeploy automatically.
+Trigger the deployment. Vercel builds the project and serves it at the configured domain (production: https://ai-interview.solutions). Subsequent pushes to the connected branch redeploy automatically.
 
 ## Custom domain
 

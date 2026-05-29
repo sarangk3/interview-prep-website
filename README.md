@@ -2,6 +2,8 @@
 
 A web application for practicing technical and product interviews. Users select a role, industry, and answer format, work through a set of questions, and receive a scored evaluation with targeted feedback.
 
+**Live site:** https://ai-interview.solutions
+
 ## Features
 
 - **Two answer formats** — write free-form responses for detailed feedback, or answer multiple-choice questions for instant scoring with explanations.
