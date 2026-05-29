@@ -206,10 +206,9 @@ export default function InterviewPrepApp() {
     const q = sessionQs[qIndex];
     const industryCtx = industry === 'General' ? '' : ` in the ${industry} industry`;
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY || '',
-          'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514', max_tokens: 1000,
           messages: [{ role: 'user', content:
@@ -234,6 +233,7 @@ Respond ONLY in this JSON (no markdown):
         }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed.');
       let fb;
       try { const raw = data.content[0].text; const m2 = raw.match(/\{[\s\S]*\}/); fb = JSON.parse(m2 ? m2[0] : raw); }
       catch { fb = { technical_depth:6, communication_clarity:6, structure:6, approach:6, overall:6,
@@ -243,7 +243,10 @@ Respond ONLY in this JSON (no markdown):
       setAllResponses(next);
       if (qIndex + 1 < sessionQs.length) { setQIndex(qIndex + 1); setResponse(''); }
       else finishInterview(next, 'text');
-    } catch { alert('Error connecting to AI. Check your API key in Vercel settings — or try Multiple Choice mode, which works offline.'); }
+    } catch (err) {
+      const msg = err?.message || '';
+      alert(msg || 'Error getting feedback. Try again, or switch to Multiple Choice mode which works offline.');
+    }
     finally { setSubmitting(false); }
   };
 
