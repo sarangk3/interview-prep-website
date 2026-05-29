@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 
 /* ─── Global CSS ───────────────────────────────────────────────────── */
 const GlobalStyles = () => (
@@ -336,6 +337,7 @@ Respond ONLY in this exact JSON (no markdown):
   if (page === 'login') return (
     <>
       <GlobalStyles />
+      <Analytics />
       <div style={{ ...S.page, ...S.center, background: meshBg }}>
         <div className="fade-up" style={{ width: '100%', maxWidth: 420, padding: '0 24px' }}>
           <div style={{ textAlign: 'center', marginBottom: 44 }}>
@@ -374,6 +376,7 @@ Respond ONLY in this exact JSON (no markdown):
     return (
       <>
         <GlobalStyles />
+        <Analytics />
         <div style={{ ...S.page, background: meshBg }}>
           <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 32px' }}>
             <div style={{ maxWidth: 1000, margin: '0 auto', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -510,6 +513,7 @@ Respond ONLY in this exact JSON (no markdown):
     return (
       <>
         <GlobalStyles />
+        <Analytics />
         <div style={{ ...S.page, background: `radial-gradient(ellipse 60% 40% at 80% 0%, ${cfg.glow}, transparent), #060a16` }}>
           <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 32px' }}>
             <div style={{ maxWidth: 760, margin: '0 auto', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -607,6 +611,7 @@ Respond ONLY in this exact JSON (no markdown):
     return (
       <>
         <GlobalStyles />
+        <Analytics />
         <div style={{ ...S.page, background: `radial-gradient(ellipse 50% 40% at 50% 0%, ${cfg.glow}, transparent), #060a16` }}>
           <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 32px' }}>
             <div style={{ maxWidth: 800, margin: '0 auto', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -726,6 +731,7 @@ Respond ONLY in this exact JSON (no markdown):
     return (
       <>
         <GlobalStyles />
+        <Analytics />
         <div style={{ ...S.page, background: meshBg }}>
           <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 32px' }}>
             <div style={{ maxWidth: 900, margin: '0 auto', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
