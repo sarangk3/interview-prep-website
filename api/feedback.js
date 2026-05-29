@@ -46,10 +46,13 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'API key not configured on the server.' });
 
   try {
+    // Strip meta before forwarding — Anthropic doesn't accept extra fields
+    const { meta, ...anthropicBody } = req.body;
+
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(anthropicBody),
     });
 
     const data = await upstream.json();
@@ -63,7 +66,7 @@ export default async function handler(req, res) {
       const raw = data.content?.[0]?.text || '';
       const match = raw.match(/\{[\s\S]*\}/);
       const fb = JSON.parse(match ? match[0] : raw);
-      const { role, industry, question, sessionId } = req.body.meta || {};
+      const { role, industry, question, sessionId } = meta || {};
       const answerText = req.body.messages?.[0]?.content?.match(/Candidate's Answer: "(.+?)"\n/s)?.[1] || '';
 
       logToAirtable({
