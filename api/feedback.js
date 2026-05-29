@@ -45,7 +45,8 @@ export default async function handler(req, res) {
   // Forward to Anthropic with the server-side key
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured on the server.' });
+    console.error('ANTHROPIC_API_KEY is not set');
+    return res.status(500).json({ error: 'API key not configured on the server. Please check Vercel environment variables.' });
   }
 
   try {
@@ -60,7 +61,11 @@ export default async function handler(req, res) {
     });
 
     const data = await upstream.json();
-    return res.status(upstream.status).json(data);
+    if (!upstream.ok) {
+      console.error('Anthropic error:', upstream.status, data);
+      return res.status(upstream.status).json({ error: data?.error?.message || 'Anthropic API error.' });
+    }
+    return res.status(200).json(data);
   } catch (err) {
     console.error('Anthropic proxy error:', err);
     return res.status(502).json({ error: 'Failed to reach the AI service. Please try again.' });

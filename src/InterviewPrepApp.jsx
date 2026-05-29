@@ -244,7 +244,7 @@ Respond ONLY in this JSON (no markdown):
       if (qIndex + 1 < sessionQs.length) { setQIndex(qIndex + 1); setResponse(''); }
       else finishInterview(next, 'text');
     } catch (err) {
-      const msg = err?.message || '';
+      const msg = (typeof err === 'string' ? err : err?.message) || '';
       alert(msg || 'Error getting feedback. Try again, or switch to Multiple Choice mode which works offline.');
     }
     finally { setSubmitting(false); }
