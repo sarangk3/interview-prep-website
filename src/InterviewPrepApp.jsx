@@ -180,8 +180,6 @@ export default function InterviewPrepApp() {
   const [sessionQs,setSessionQs]   = useState([]);
   const [sessionMeta,setSessionMeta] = useState({});
   const [barsAnim,setBarsAnim]     = useState(false);
-  const [emailInput,setEmailInput] = useState('');
-  const [emailDone,setEmailDone]   = useState(false);
   const [elapsed,setElapsed]       = useState(0);
   const [listening,setListening]   = useState(false);
   const recRef = useRef(null);
@@ -259,7 +257,7 @@ export default function InterviewPrepApp() {
   const startInterview=(r,m)=>{
     setRole(r);setMode(m);
     setAllResponses([]);setResponse('');setMcChoice(null);
-    setResults(null);setEmailDone(false);setEmailInput('');
+    setResults(null);
     setMockScore(null);setMockTurnCount(0);setMockThinking(false);
     setErrorMsg('');setConfirmExit(false);
 
@@ -402,7 +400,6 @@ export default function InterviewPrepApp() {
     a.href=url;a.download=`interview-${(sessionMeta.role||'session').replace(/[^a-z]/gi,'')}-${Date.now()}.txt`;
     document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   };
-  const submitEmail=()=>{ setEmailDone(true); downloadCopy(); };
 
   const stats=()=>{
     if(!interviews.length)return null;
@@ -1010,7 +1007,10 @@ export default function InterviewPrepApp() {
                         <p style={{color:'#6B7280',fontSize:15}}>Track your improvement across roles and sessions.</p>
                       </div>
                       {interviews.length>0&&(
-                        <button className="bg" onClick={()=>{if(window.confirm('Clear all session history? This cannot be undone.')){setInterviews([]);persist([],savedEmail);}}} style={{padding:'8px 14px',fontSize:13,color:'#DC2626',borderColor:'#FECACA',flexShrink:0,marginTop:4}}>Clear history</button>
+                        <button className="bg" onClick={()=>{if(window.confirm('Clear all session history? This cannot be undone.')){
+              setInterviews([]);
+              if(user) supabase.from('interviews').delete().eq('user_id',user.id).then(()=>{});
+            }}} style={{padding:'8px 14px',fontSize:13,color:'#DC2626',borderColor:'#FECACA',flexShrink:0,marginTop:4}}>Clear history</button>
                       )}
                     </div>
                     {!st?(
