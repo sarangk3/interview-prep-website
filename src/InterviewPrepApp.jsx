@@ -43,13 +43,13 @@ const G = () => (
 );
 
 const ROLE_CFG = {
-  'AI Solutions Architect':           {color:'#7C3AED',bg:'#F5F3FF',border:'#DDD6FE',icon:'🧠',label:'LLMs, RAG & AI Systems',   short:'AI Architect', card:'AI Solutions Architect'},
-  'Forward Deployed Engineer':        {color:'#2563EB',bg:'#EFF6FF',border:'#BFDBFE',icon:'⚙️',label:'Embedded Customer Builds', short:'FD Engineer', card:'FD Engineer'},
-  'Forward Deployed Product Manager': {color:'#D97706',bg:'#FFFBEB',border:'#FDE68A',icon:'📋',label:'Customer-Embedded PM',     short:'FD PM', card:'FD Product Manager'},
-  'Technical Program Manager':                              {color:'#DC2626',bg:'#FEF2F2',border:'#FECACA',icon:'📊',label:'Programs & Delivery',      short:'Tech PM', card:'Tech Program Manager'},
+  'AI Solutions Architect':           {color:'#7C3AED',bg:'#F5F3FF',border:'#DDD6FE',icon:'',label:'LLMs, RAG & AI Systems',   short:'AI Architect', card:'AI Solutions Architect'},
+  'Forward Deployed Engineer':        {color:'#2563EB',bg:'#EFF6FF',border:'#BFDBFE',icon:'️',label:'Embedded Customer Builds', short:'FD Engineer', card:'FD Engineer'},
+  'Forward Deployed Product Manager': {color:'#D97706',bg:'#FFFBEB',border:'#FDE68A',icon:'',label:'Customer-Embedded PM',     short:'FD PM', card:'FD Product Manager'},
+  'Technical Program Manager':                              {color:'#DC2626',bg:'#FEF2F2',border:'#FECACA',icon:'',label:'Programs & Delivery',      short:'Tech PM', card:'Tech Program Manager'},
 };
 
-/* Pick a question not recently shown — cycles through all before repeating */
+/* Pick a question not recently shown, cycles through all before repeating */
 const getNextQuestion = (bank, key) => {
   const used = JSON.parse(localStorage.getItem(`q_${key}`) || '[]');
   const available = bank.map((_,i)=>i).filter(i=>!used.includes(i));
@@ -62,9 +62,9 @@ const getNextQuestion = (bank, key) => {
 
 /* Shuffle array for full-interview mode */
 const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
-const IND_ICONS = {General:'🌐',Healthcare:'🏥',Fintech:'💳','E-commerce':'🛒'};
+const IND_ICONS = {General:'',Healthcare:'',Fintech:'','E-commerce':''};
 const TIPS = {
-  'AI Solutions Architect':           "Focus on trade-offs between RAG, fine-tuning, and prompting — not just what you'd build.",
+  'AI Solutions Architect':           "Focus on trade-offs between RAG, fine-tuning, and prompting, not just what you'd build.",
   'Forward Deployed Engineer':        "Start with discovery and observation. Interviewers want your process, not just the solution.",
   'Forward Deployed Product Manager': "Show how you balance one customer's needs against a generalizable product direction.",
   'Technical Program Manager':                              "Demonstrate how you create clarity from ambiguity. Name specific artifacts and stakeholders.",
@@ -114,20 +114,20 @@ const Sidebar = ({ page, setPage, interviews, user, onLogout, onSignIn, isPro, o
   const avg = calcAvg(interviews);
   const avgLabel = avg !== null ? (avg + ' out of 10') : '';
   const planLabel = (user && isPro) ? 'Unlimited everything' : 'Unlimited MC, 5 AI per day';
-  const planTitle = (user && isPro) ? 'Pro Plan' : 'Free Plan';
+  const planTitle = (user && isPro) ? 'Pro' : 'Free Plan';
   return (
     <div className="sb" style={{width:220,background:'#fff',borderRight:'1px solid #E5E7EB',display:'flex',flexDirection:'column',padding:'0 10px',flexShrink:0}}>
       <div style={{padding:'20px 6px 20px',borderBottom:'1px solid #F3F4F6'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <div style={{width:30,height:30,borderRadius:8,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>⚡</div>
+          <div style={{width:30,height:30,borderRadius:8,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',letterSpacing:'-0.5px'}}>AI</div>
           <span style={{fontWeight:700,fontSize:15,color:'#111827'}}>Interview Prep</span>
         </div>
       </div>
       <div style={{padding:'14px 0',flex:1}}>
         <p style={{fontSize:11,fontWeight:600,color:'#9CA3AF',padding:'0 12px',marginBottom:6,textTransform:'uppercase',letterSpacing:'.06em'}}>Practice</p>
-        {[{id:'home',label:'Question Bank',icon:'📚'},{id:'dashboard',label:'My Progress',icon:'📈'},{id:'roles',label:'Role Guides',icon:'📖'}].map(item=>(
+        {[{id:'home',label:'Question Bank',icon:''},{id:'dashboard',label:'My Progress',icon:''},{id:'roles',label:'Role Guides',icon:''}].map(item=>(
           <button key={item.id} className={`ni ${page===item.id?'on':''}`} onClick={()=>setPage(item.id)}>
-            <span style={{fontSize:16}}>{item.icon}</span>{item.label}
+            {item.label}
           </button>
         ))}
       </div>
@@ -303,7 +303,7 @@ export default function InterviewPrepApp() {
   const handleForgotPassword = async () => {
     if(!authEmail.trim()) return setAuthError('Enter your email address first.');
     const { error } = await supabase.auth.resetPasswordForEmail(authEmail.trim());
-    setAuthError(error ? error.message : 'Password reset email sent — check your inbox.');
+    setAuthError(error ? error.message : 'Password reset email sent, check your inbox.');
   };
   useEffect(()=>{ if(page==='results'){const t=setTimeout(()=>setBarsAnim(true),400);return()=>clearTimeout(t);} setBarsAnim(false); },[page]);
   useEffect(()=>{ if(page!=='interview'){setElapsed(0);return;} const t=setInterval(()=>setElapsed(e=>e+1),1000);return()=>clearInterval(t); },[page]);
@@ -338,7 +338,7 @@ export default function InterviewPrepApp() {
     if(!user && (format==='text' || format==='mock')) {
       setAuthMode('signup'); setAuthError(''); setPage('signin'); return;
     }
-    // Company selector replaces difficulty — no Pro gate on company selection
+    // Company selector replaces difficulty, no Pro gate on company selection
     // Gate: More than 1 mock interview requires Pro
     if(format==='mock' && user && !isPro && (profile?.mocks_completed||0) >= 1) {
       setUpgradeReason('mock'); setShowUpgrade(true); return;
@@ -475,7 +475,7 @@ export default function InterviewPrepApp() {
 
   const buildTranscript=()=>{
     const isMC=results[0]&&'isCorrect' in results[0];
-    let out=`INTERVIEW PREP — SESSION SUMMARY\n${'='.repeat(34)}\nRole: ${sessionMeta.role}\nIndustry: ${sessionMeta.industry}\nDate: ${new Date().toLocaleString()}\n${user?.email?`Email: ${user.email}\n`:''}\n`;
+    let out=`INTERVIEW PREP, SESSION SUMMARY\n${'='.repeat(34)}\nRole: ${sessionMeta.role}\nIndustry: ${sessionMeta.industry}\nDate: ${new Date().toLocaleString()}\n${user?.email?`Email: ${user.email}\n`:''}\n`;
     results.forEach((r,i)=>{
       out+=`--- Q${i+1} ---\n${r.question}\n\n`;
       if(isMC){r.options.forEach((o,j)=>{out+=`  ${String.fromCharCode(65+j)}. ${o}${j===r.correct?' [CORRECT]':j===r.chosen?' [YOUR PICK]':''}\n`;});out+=`\nResult: ${r.isCorrect?'Correct':'Incorrect'}\nWhy: ${r.explanation}\n\n`;}
@@ -537,19 +537,19 @@ export default function InterviewPrepApp() {
       {authLoading && (
         <div style={{position:'fixed',inset:0,background:'#F9FAFB',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2000}}>
           <div style={{textAlign:'center'}}>
-            <div style={{width:40,height:40,borderRadius:12,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,margin:'0 auto 16px'}}>⚡</div>
+            <div style={{width:40,height:40,borderRadius:12,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff',margin:'0 auto 16px'}}>AI</div>
             <p style={{color:'#9CA3AF',fontSize:14}}>Loading…</p>
           </div>
         </div>
       )}
 
-      {/* ── Main app — always shown once loading is done ── */}
+      {/* ── Main app, always shown once loading is done ── */}
       {!authLoading && (<>
       {/* ── Inline error banner ── */}
       {errorMsg && (
         <div style={{position:'fixed',top:0,left:0,right:0,zIndex:1000,background:'#FEF2F2',borderBottom:'1px solid #FECACA',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
-            <span style={{fontSize:16}}>⚠️</span>
+            <span style={{fontSize:16}}>️</span>
             <p style={{fontSize:14,color:'#991B1B',fontWeight:500}}>{errorMsg}</p>
           </div>
           <button onClick={()=>setErrorMsg('')} style={{background:'none',border:'none',cursor:'pointer',color:'#DC2626',fontSize:18,lineHeight:1,padding:'0 4px'}}>✕</button>
@@ -560,8 +560,8 @@ export default function InterviewPrepApp() {
         <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={()=>setShowUpgrade(false)}>
           <div style={{background:'#fff',borderRadius:20,padding:36,maxWidth:460,width:'100%',boxShadow:'0 24px 80px rgba(0,0,0,0.25)'}} onClick={e=>e.stopPropagation()}>
             <div style={{textAlign:'center',marginBottom:24}}>
-              <div style={{fontSize:36,marginBottom:12}}>
-                {upgradeReason==='hard'?'🔥':upgradeReason==='mock'?'🎯':'⚡'}
+              <div style={{display:'none'}}>
+                {upgradeReason==='hard'?'':upgradeReason==='mock'?'':'⚡'}
               </div>
               <h2 style={{fontSize:20,fontWeight:700,color:'#111827',marginBottom:8}}>
                 {upgradeReason==='hard'?'Hard mode is Pro only':
@@ -698,7 +698,7 @@ export default function InterviewPrepApp() {
                       <button className={`bg ${listening?'mic-live':''}`} onClick={toggleListening}
                         style={{position:'absolute',left:12,bottom:10,display:'flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:12,fontWeight:600,
                           borderColor:listening?'#FCA5A5':'#E5E7EB',color:listening?'#EF4444':'#9CA3AF'}}>
-                        🎤 {listening?'Listening…':'Speak'}
+                         {listening?'Listening…':'Speak'}
                       </button>
                     )}
                   </div>
@@ -715,7 +715,7 @@ export default function InterviewPrepApp() {
           )}
           {page==='interview' && format!=='mock' && q && cfg && (
             <div className="isp" style={{display:'flex',flex:1,overflow:'hidden'}}>
-              {/* Left — question (stable, no key that changes) */}
+              {/* Left, question (stable, no key that changes) */}
               <div style={{flex:1,padding:'28px 32px',overflowY:'auto',borderRight:'1px solid #E5E7EB',background:'#F9FAFB'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:18,flexWrap:'wrap'}}>
                   <button className="bg" onClick={()=>setPage('home')} style={{padding:'5px 12px',fontSize:13}}>← Back</button>
@@ -732,13 +732,13 @@ export default function InterviewPrepApp() {
                 </div>
                 {TIPS[role]&&(
                   <div style={{background:'#FFFBEB',border:'1px solid #FDE68A',borderRadius:10,padding:'12px 16px',display:'flex',gap:10}}>
-                    <span style={{flexShrink:0}}>💡</span>
+                    <span style={{flexShrink:0}}></span>
                     <p style={{fontSize:13,color:'#92400E',lineHeight:1.5}}><strong>Tip:</strong> {TIPS[role]}</p>
                   </div>
                 )}
               </div>
 
-              {/* Right — answer */}
+              {/* Right, answer */}
               <div className="ap" style={{width:400,padding:'28px',display:'flex',flexDirection:'column',background:'#fff',overflowY:'auto',flexShrink:0}}>
                 {isMC ? (
                   <>
@@ -763,13 +763,13 @@ export default function InterviewPrepApp() {
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                       <p style={{fontSize:14,fontWeight:600,color:'#374151'}}>Your Answer</p>
                       <div style={{display:'flex',alignItems:'center',gap:6,background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:8,padding:'5px 10px'}}>
-                        <span style={{fontSize:12}}>⏱</span>
+                        <span style={{fontSize:12}}></span>
                         <span style={{fontSize:13,fontWeight:600,color:'#374151',fontVariantNumeric:'tabular-nums'}}>{fmt(elapsed)}</span>
                       </div>
                     </div>
                     <div style={{position:'relative',flex:1,display:'flex',flexDirection:'column'}}>
                       <textarea value={response} onChange={e=>setResponse(e.target.value)}
-                        placeholder="Walk through your approach here. Think out loud — how you structure your answer matters as much as the content..."
+                        placeholder="Walk through your approach here. Think out loud, how you structure your answer matters as much as the content..."
                         style={{flex:1,minHeight:260,padding:'16px',paddingBottom:52,border:'1px solid #E5E7EB',borderRadius:12,fontSize:14,
                           lineHeight:1.7,color:'#111827',background:'#F9FAFB',transition:'border-color .2s',display:'block',width:'100%',
                           borderColor:listening?'#FCA5A5':response.length>100?'#A5B4FC':'#E5E7EB'}}
@@ -778,12 +778,12 @@ export default function InterviewPrepApp() {
                         <button className={`bg ${listening?'mic-live':''}`} onClick={toggleListening}
                           style={{position:'absolute',left:12,bottom:12,display:'flex',alignItems:'center',gap:6,padding:'6px 12px',fontSize:12,fontWeight:600,
                             borderColor:listening?'#FCA5A5':'#E5E7EB',color:listening?'#EF4444':'#9CA3AF'}}>
-                          🎤 {listening?'Listening…':'Speak'}
+                           {listening?'Listening…':'Speak'}
                         </button>
                       )}
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:8,marginBottom:12}}>
-                      <span style={{fontSize:12,color:wc>50?'#9CA3AF':'#D1D5DB'}}>{wc} words{wc>0&&wc<50?' — try to elaborate':''}</span>
+                      <span style={{fontSize:12,color:wc>50?'#9CA3AF':'#D1D5DB'}}>{wc} words{wc>0&&wc<50?', try to elaborate':''}</span>
                       {wc===0&&<span style={{fontSize:12,color:'#D1D5DB'}}>Type your answer to continue</span>}
                     </div>
                     <button className="bp" onClick={submitText} disabled={submitting||response.trim().length<3}
@@ -807,10 +807,10 @@ export default function InterviewPrepApp() {
                   {
                     key: 'AI Solutions Architect',
                     cfg: ROLE_CFG['AI Solutions Architect'],
-                    what: "An AI Solutions Architect is a pre-sales and advisory technical role focused on helping enterprise customers integrate AI into their existing systems. At Anthropic, the Applied AI SA role is described as being a trusted technical advisor who helps large enterprises understand the value of Claude and paints the vision of how they can successfully deploy it. At AWS and Google Cloud, SAs spend most of their time in discovery and scoping — understanding a customer's data landscape, existing infrastructure, and business goals — then designing the architecture that bridges what the customer has today with what an AI system needs to work.",
-                    notJust: "This role is often confused with a software engineer or a consultant. Unlike an FDE, an AI SA writes almost no production code. Unlike a consultant, they must defend technical decisions in front of engineers who will push back hard. The role lives at the intersection: deep enough to earn the respect of the engineering team, broad enough to speak the language of a CTO or VP of Product. A day is mostly meetings — discovery sessions, architecture reviews, stakeholder presentations — punctuated by document writing. The output is proposals, diagrams, and recommendations, not pull requests.",
+                    what: "An AI Solutions Architect is a pre-sales and advisory technical role focused on helping enterprise customers integrate AI into their existing systems. At Anthropic, the Applied AI SA role is described as being a trusted technical advisor who helps large enterprises understand the value of Claude and paints the vision of how they can successfully deploy it. At AWS and Google Cloud, SAs spend most of their time in discovery and scoping, understanding a customer's data landscape, existing infrastructure, and business goals, then designing the architecture that bridges what the customer has today with what an AI system needs to work.",
+                    notJust: "This role is often confused with a software engineer or a consultant. Unlike an FDE, an AI SA writes almost no production code. Unlike a consultant, they must defend technical decisions in front of engineers who will push back hard. The role lives at the intersection: deep enough to earn the respect of the engineering team, broad enough to speak the language of a CTO or VP of Product. A day is mostly meetings, discovery sessions, architecture reviews, stakeholder presentations, punctuated by document writing. The output is proposals, diagrams, and recommendations, not pull requests.",
                     dayToDay: [
-                      "Technical discovery: mapping a customer's existing data sources, APIs, vector stores, and model infrastructure — what they have, what is missing, and what the gaps are",
+                      "Technical discovery: mapping a customer's existing data sources, APIs, vector stores, and model infrastructure, what they have, what is missing, and what the gaps are",
                       "Writing architecture decision records: why RAG over fine-tuning, why pgvector over Pinecone, why Claude Sonnet over Haiku for this specific use case",
                       "Running proof-of-concept sessions alongside the customer's engineering team to validate assumptions before the FDE commits to a full build",
                       "Translating technical tradeoffs into business language for the executive sponsor: latency vs cost, accuracy vs speed, build vs buy",
@@ -834,26 +834,26 @@ export default function InterviewPrepApp() {
                   {
                     key: 'Forward Deployed Engineer',
                     cfg: ROLE_CFG['Forward Deployed Engineer'],
-                    what: "A Forward Deployed Engineer (FDE) is a software engineer embedded directly with a specific customer to build and deploy AI solutions in that customer's environment. Palantir invented the role around 2010 — until 2016 they had more FDEs than traditional software engineers. The model has spread rapidly: OpenAI, Anthropic, Ramp, Databricks, Scale AI, Stripe, and Salesforce all run FDE teams. FDE job postings grew over 800% between 2024 and 2025. a16z called it the hottest job in tech. OpenAI's international managing director explained at Fortune Brainstorm AI 2025: hiring our own engineers to deploy for our largest customers is a specific way to accelerate AI into production — bridging the gap from trial to production that AI deployments consistently struggle with.",
-                    notJust: "Palantir's own job description is the clearest framing: FDE responsibilities look similar to those of a startup CTO — you work in small teams and own end-to-end execution of high-stakes projects. You are accountable for a specific customer's outcome, not a KPI on a product dashboard. Every line of code runs against real data in a production system real people depend on. Former Palantir FDE Anjor Kanekar (7 years in the role) has described working on the final assembly line at Airbus, in airgapped government environments, and in operational settings most engineers never encounter.",
+                    what: "A Forward Deployed Engineer (FDE) is a software engineer embedded directly with a specific customer to build and deploy AI solutions in that customer's environment. Palantir invented the role around 2010, until 2016 they had more FDEs than traditional software engineers. The model has spread rapidly: OpenAI, Anthropic, Ramp, Databricks, Scale AI, Stripe, and Salesforce all run FDE teams. FDE job postings grew over 800% between 2024 and 2025. a16z called it the hottest job in tech. OpenAI's international managing director explained at Fortune Brainstorm AI 2025: hiring our own engineers to deploy for our largest customers is a specific way to accelerate AI into production, bridging the gap from trial to production that AI deployments consistently struggle with.",
+                    notJust: "Palantir's own job description is the clearest framing: FDE responsibilities look similar to those of a startup CTO, you work in small teams and own end-to-end execution of high-stakes projects. You are accountable for a specific customer's outcome, not a KPI on a product dashboard. Every line of code runs against real data in a production system real people depend on. Former Palantir FDE Anjor Kanekar (7 years in the role) has described working on the final assembly line at Airbus, in airgapped government environments, and in operational settings most engineers never encounter.",
                     dayToDay: [
-                      "Morning: technical discovery alongside the customer's ops or engineering team — understanding the actual workflow, not the workflow described in the requirements document",
+                      "Morning: technical discovery alongside the customer's ops or engineering team, understanding the actual workflow, not the workflow described in the requirements document",
                       "Writing production-grade Python and TypeScript against the customer's actual data and systems, not a clean development environment with well-documented APIs",
                       "Attending the customer's operational stand-ups to understand what broke overnight and what decisions need to be made today",
-                      "Building LLM workflows — typically RAG pipelines, agents, or structured extraction systems — tuned to the customer's specific data and edge cases",
+                      "Building LLM workflows, typically RAG pipelines, agents, or structured extraction systems, tuned to the customer's specific data and edge cases",
                       "Debugging issues no remote support team could diagnose: data quality problems, legacy system quirks, integration failures in environments you did not build",
                       "Running demos and walkthroughs with customer stakeholders who range from skeptical engineers to excited executives",
-                      "Evening: feeding learnings back to the product team at HQ — what is missing from the platform, what the customer will pay for next, what broke that should not have",
+                      "Evening: feeding learnings back to the product team at HQ, what is missing from the platform, what the customer will pay for next, what broke that should not have",
                     ],
                     skills: [
                       { name: 'Senior Generalist Engineering', desc: 'Comfortable in Python and TypeScript, able to read SQL, comfortable enough with infrastructure to deploy and debug independently. Most FDE listings emphasize model integration, evals, and pipeline work over greenfield framework design.' },
-                      { name: 'Rapid Prototyping Under Pressure', desc: 'OpenAI requires up to 50% travel. You will be at a customer site with a deadline and ambiguous requirements. Building something working in hours — not perfect, but working — is more valuable than clean architecture.' },
+                      { name: 'Rapid Prototyping Under Pressure', desc: 'OpenAI requires up to 50% travel. You will be at a customer site with a deadline and ambiguous requirements. Building something working in hours, not perfect, but working, is more valuable than clean architecture.' },
                       { name: 'Model Integration and Evals', desc: 'Building RAG systems, prompt pipelines, and evaluation frameworks against customer data. Understanding why a retrieval pipeline fails on a specific customer documents.' },
                       { name: 'Hostile Environment Debugging', desc: 'Diagnosing failures in systems you did not build, with limited logging, in environments with strict security constraints. This takes real experience to develop.' },
                       { name: 'Customer Trust Building', desc: 'Customers give FDEs access to sensitive production systems. Building that trust by being technically credible and reliably honest about what is and is not feasible is central to the role.' },
                       { name: 'Product Feedback Loop', desc: 'Ramp describes FDEs as embedding within core product engineering teams. What you learn in the field shapes the roadmap. The best FDEs are engineers and product managers simultaneously.' },
                     ],
-                    teamDynamic: "At companies like Palantir and OpenAI, FDEs alternate between customer engagements and core product work — field experience directly informs product decisions. At Anthropic, the Applied AI team (their version of FDEs) sits close to both the enterprise sales motion and the model team. Ramp runs around 15 FDEs in pods. In a typical AI deployment, the FDE is execution: the SA set the architecture, the FDPM manages the customer relationship, and the FDE ships the code.",
+                    teamDynamic: "At companies like Palantir and OpenAI, FDEs alternate between customer engagements and core product work, field experience directly informs product decisions. At Anthropic, the Applied AI team (their version of FDEs) sits close to both the enterprise sales motion and the model team. Ramp runs around 15 FDEs in pods. In a typical AI deployment, the FDE is execution: the SA set the architecture, the FDPM manages the customer relationship, and the FDE ships the code.",
                     careerPath: "FDE compensation reflects the scarcity of the skill combination. Palantir average TC is $238,000, range $205,000 to $486,000. OpenAI and Anthropic mid-to-senior FDE packages run $350,000 to $550,000, benchmarked against researchers. Staff-level FDEs at top labs exceed $630,000. The role is a launching pad: alumni have gone on to found companies, become VPs of Engineering, and lead enterprise AI teams at Google and Microsoft.",
                     sources: ["The Pragmatic Engineer: What are FDEs and why so in demand? (Gergely Orosz, Aug 2025)", "a16z: FDE is the hottest job in tech (2025)", "Emergence Capital: AI Models are Gold, FDEs are the Gold Miners (July 2025)", "FDE job posting growth 800%+ (extern.com, 2025)", "OpenAI Fortune Brainstorm AI 2025 (Oliver Jay)"],
                     companiesHiring: ['Palantir', 'OpenAI', 'Anthropic', 'Ramp', 'Scale AI', 'Databricks', 'Salesforce'],
@@ -869,18 +869,18 @@ export default function InterviewPrepApp() {
                       "Scope protection: fielding customer requests for additions and deciding which belong in this engagement, which belong in a future contract, and which should never be built",
                       "Weekly customer steering meetings: translating where the engineering work actually is into language that does not cause the customer to escalate",
                       "Escalating internally when customer expectations have drifted from what was scoped, before it becomes a delivery failure",
-                      "Identifying signals that a customer-specific need should be generalized into a product feature — where FDPMs directly influence roadmap",
+                      "Identifying signals that a customer-specific need should be generalized into a product feature, where FDPMs directly influence roadmap",
                       "Managing the end-of-engagement transition: ensuring the customer's team can operate what was built without the deployment team present",
                     ],
                     skills: [
-                      { name: 'Requirement Extraction', desc: 'Running a 2-hour discovery session with a room of stakeholders and leaving with a clear, specific list of what needs to be built — not a list of everyone\'s wishes.' },
-                      { name: 'Scope Management', desc: 'Enterprise customers consistently add scope throughout a deployment. The FDPM must say no — often to people with more organizational power — in ways that preserve the relationship.' },
+                      { name: 'Requirement Extraction', desc: 'Running a 2-hour discovery session with a room of stakeholders and leaving with a clear, specific list of what needs to be built, not a list of everyone\'s wishes.' },
+                      { name: 'Scope Management', desc: 'Enterprise customers consistently add scope throughout a deployment. The FDPM must say no, often to people with more organizational power, in ways that preserve the relationship.' },
                       { name: 'Technical Fluency', desc: 'Not a coder, but sufficient technical understanding to know when an engineer is overcomplicating something, when a request is infeasible, and when a technical risk is being understated.' },
                       { name: 'Executive Presence', desc: 'FDPMs regularly present to VP and C-suite stakeholders at customer organizations. Communicating program status clearly, including bad news, without causing panic is a core skill.' },
                       { name: 'Consulting Instincts', desc: 'Walking into a new organization every engagement and quickly mapping how decisions get made, who the real influencers are, and where organizational resistance will come from.' },
                       { name: 'Written Precision', desc: 'Requirements docs, status updates, escalation memos, change orders. Every document must be precise enough that ambiguity cannot be weaponized later.' },
                     ],
-                    teamDynamic: "The FDPM is the integrating layer of a deployment team. The SA designs the system, the FDE builds it, the TPM manages cross-team dependencies — the FDPM owns the customer relationship throughout. When the customer is unhappy, it lands on the FDPM. When engineering is being asked to do something impossible, the FDPM has that conversation with the customer. The best FDPMs create conditions where the FDE and SA can focus entirely on technical work because all relationship complexity has been absorbed.",
+                    teamDynamic: "The FDPM is the integrating layer of a deployment team. The SA designs the system, the FDE builds it, the TPM manages cross-team dependencies, the FDPM owns the customer relationship throughout. When the customer is unhappy, it lands on the FDPM. When engineering is being asked to do something impossible, the FDPM has that conversation with the customer. The best FDPMs create conditions where the FDE and SA can focus entirely on technical work because all relationship complexity has been absorbed.",
                     careerPath: "FDPMs typically come from management consulting (diagnosis and stakeholder management), traditional SaaS PM roles (product craft), or technical backgrounds that evolved toward product. The role is less common than FDE and SA, which makes strong FDPMs disproportionately valuable. Progression paths include Director of Product, Head of Enterprise, VP of Customer Success, or founding roles at startups where customer development is the scarcest early-team resource.",
                     sources: ["Palantir FDSE role model (multiple sources)", "MindStudio: Palantir FDE Model Drove 640% Returns (2026)", "Pragmatic Engineer FDE deep-dive (Aug 2025)"],
                     companiesHiring: ['Palantir', 'Anthropic', 'OpenAI', 'Glean', 'Scale AI', 'Cohere', 'Writer'],
@@ -888,7 +888,7 @@ export default function InterviewPrepApp() {
                   {
                     key: 'Technical Program Manager',
                     cfg: ROLE_CFG['Technical Program Manager'],
-                    what: "A Technical Program Manager drives complex, multi-team technical initiatives from ambiguity to completion. The role exists because some programs are too interdependent for any single engineering team to own, and too technical for a non-engineer to coordinate. At Google and Amazon — the two companies that have most formally defined the role — a TPM sits between senior engineering leadership and the teams executing, building the dependency maps, risk registers, and communication infrastructure that allow a 12-team program to move without constant VP intervention. Median total comp is $260,500 at Amazon and $282,000 at Google (Levels.fyi, 2025).",
+                    what: "A Technical Program Manager drives complex, multi-team technical initiatives from ambiguity to completion. The role exists because some programs are too interdependent for any single engineering team to own, and too technical for a non-engineer to coordinate. At Google and Amazon, the two companies that have most formally defined the role, a TPM sits between senior engineering leadership and the teams executing, building the dependency maps, risk registers, and communication infrastructure that allow a 12-team program to move without constant VP intervention. Median total comp is $260,500 at Amazon and $282,000 at Google (Levels.fyi, 2025).",
                     notJust: "TPM is not project management with a technical flavor. A project manager tracks tasks. A TPM identifies the dependency that will blow up the launch 6 weeks from now and drives a cross-team resolution today. The distinction matters because the value of the role is entirely in the proactive intervention: by the time a risk becomes visible to a project manager, it is often already a crisis. The technical qualifier is also not decorative: a TPM who cannot read a technical design document, estimate engineering complexity, or push back on an unrealistic timeline does not have the standing to do the job.",
                     dayToDay: [
                       "Building the dependency map: pulling every team's plan, identifying where Team A's output is Team B's input, surfacing the places where no one has agreed on the interface",
@@ -922,13 +922,13 @@ export default function InterviewPrepApp() {
                       <>
                         <div className="fu" style={{marginBottom:28}}>
                           <h1 style={{fontSize:26,fontWeight:700,color:'#111827',marginBottom:6}}>Role Guides</h1>
-                          <p style={{color:'#6B7280',fontSize:15}}>Detailed breakdowns of each AI-era tech role — what they do, what skills they need, and how they work together.</p>
+                          <p style={{color:'#6B7280',fontSize:15}}>Detailed breakdowns of each AI-era tech role, what they do, what skills they need, and how they work together.</p>
                         </div>
                         <div className="rg" style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
                           {ROLE_ARTICLES.map(r=>(
                             <div key={r.key} className="rc" onClick={()=>setSelectedRole(r.key)} style={{padding:'24px'}}>
                               <div style={{display:'flex',alignItems:'flex-start',gap:14,marginBottom:14}}>
-                                <div style={{width:44,height:44,borderRadius:10,background:r.cfg.bg,border:`1px solid ${r.cfg.border}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{r.cfg.icon}</div>
+                                
                                 <div>
                                   <p style={{fontWeight:700,fontSize:15,color:'#111827',marginBottom:3}}>{r.key}</p>
                                   <p style={{fontSize:12,color:r.cfg.color,fontWeight:600}}>{r.cfg.label}</p>
@@ -950,7 +950,7 @@ export default function InterviewPrepApp() {
                         <button className="bg" onClick={()=>setSelectedRole(null)} style={{padding:'5px 12px',fontSize:13,marginBottom:20}}>← All Roles</button>
                         {/* Hero */}
                         <div style={{display:'flex',alignItems:'flex-start',gap:16,marginBottom:28}}>
-                          <div style={{width:56,height:56,borderRadius:14,background:selected.cfg.bg,border:`1px solid ${selected.cfg.border}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,flexShrink:0}}>{selected.cfg.icon}</div>
+                          <div style={{width:56,height:56,borderRadius:14,background:selected.cfg.bg,border:`1px solid ${selected.cfg.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}></div>
                           <div>
                             <h1 style={{fontSize:26,fontWeight:700,color:'#111827',marginBottom:4}}>{selected.key}</h1>
                             <p style={{fontSize:14,color:selected.cfg.color,fontWeight:600}}>{selected.cfg.label}</p>
@@ -1029,7 +1029,7 @@ export default function InterviewPrepApp() {
                 <div style={{maxWidth:480,margin:'0 auto',padding:'48px 24px'}}>
                   {/* Score teaser */}
                   <div style={{textAlign:'center',marginBottom:32}}>
-                    <div style={{width:72,height:72,borderRadius:'50%',background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 20px',boxShadow:'0 8px 32px rgba(99,102,241,.3)'}}>🎯</div>
+                    <div style={{width:72,height:72,borderRadius:'50%',background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 20px',boxShadow:'0 8px 32px rgba(99,102,241,.3)'}}></div>
                     <h1 style={{fontSize:26,fontWeight:700,color:'#111827',marginBottom:8}}>Your results are ready</h1>
                     <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6}}>
                       You just completed a <strong>{pendingInterview.role}</strong> interview in <strong>{pendingInterview.industry}</strong>.
@@ -1048,7 +1048,7 @@ export default function InterviewPrepApp() {
                   </div>
                   {renderAuthForm(null)}
                   <button onClick={()=>setPage('home')} style={{background:'none',border:'none',cursor:'pointer',width:'100%',marginTop:14,fontSize:13,color:'#9CA3AF',textAlign:'center'}}>
-                    Skip for now — practice another question
+                    Skip for now, practice another question
                   </button>
                 </div>
               )}
@@ -1081,7 +1081,7 @@ export default function InterviewPrepApp() {
                       ))}
                     </div>
                   </div>
-                  {/* Company — only for mock */}
+                  {/* Company, only for mock */}
                   {format==='mock'&&(
                     <div className="fu d1" style={{marginBottom:24}}>
                       <p style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:10}}>Target company</p>
@@ -1092,7 +1092,7 @@ export default function InterviewPrepApp() {
                               border:company===name?`2px solid ${cfg.color}`:'1px solid #E5E7EB',
                               background:company===name?cfg.bg:'#fff'}}>
                             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
-                              <span style={{fontSize:14}}>{cfg.icon}</span>
+                              
                               <p style={{fontSize:13,fontWeight:600,color:company===name?cfg.color:'#374151'}}>{name}</p>
                             </div>
                             <p style={{fontSize:11,color:'#9CA3AF',lineHeight:1.3}}>{cfg.tagline}</p>
@@ -1107,7 +1107,7 @@ export default function InterviewPrepApp() {
                     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                       {INDUSTRIES.map(ind=>(
                         <button key={ind} className={`chip ${industry===ind?'on':''}`} onClick={()=>setIndustry(ind)}>
-                          {IND_ICONS[ind]} {ind}
+                          {ind}
                         </button>
                       ))}
                     </div>
@@ -1136,7 +1136,7 @@ export default function InterviewPrepApp() {
                       })}
                     </div>
                   </div>
-                  {/* Quick practice — hidden for mock */}
+                  {/* Quick practice, hidden for mock */}
                   {format!=='mock'&&(
                   <div className="fu d4">
                     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
@@ -1224,7 +1224,7 @@ export default function InterviewPrepApp() {
                         )}
                         {mockScore.components_missed?.length>0&&(
                           <div style={{background:'#FFFBEB',border:'1px solid #FDE68A',borderRadius:12,padding:'16px 18px'}}>
-                            <p style={{fontSize:11,fontWeight:700,color:'#B45309',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>✗ What you missed</p>
+                            <p style={{fontSize:11,fontWeight:700,color:'#B45309',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}> What you missed</p>
                             {mockScore.components_missed.map((c,j)=><div key={j} style={{display:'flex',gap:8,marginBottom:6}}><span style={{color:'#F59E0B',fontWeight:700,flexShrink:0}}>→</span><p style={{fontSize:13,color:'#78350F',lineHeight:1.5}}>{c}</p></div>)}
                           </div>
                         )}
@@ -1234,7 +1234,7 @@ export default function InterviewPrepApp() {
                     {sessionMeta.idealSolution&&(
                       <div className="card fu" style={{padding:'20px 24px',marginBottom:14,background:'#EFF6FF',border:'1px solid #BFDBFE'}}>
                         <p style={{fontSize:12,fontWeight:700,color:'#1D4ED8',marginBottom:12,textTransform:'uppercase',letterSpacing:'.05em',display:'flex',alignItems:'center',gap:6}}>
-                          💡 Model Answer — What a Strong Response Covers
+                           Model Answer, What a Strong Response Covers
                         </p>
                         <p style={{fontSize:14,color:'#1E40AF',lineHeight:1.8}}>{sessionMeta.idealSolution}</p>
                       </div>
@@ -1264,7 +1264,7 @@ export default function InterviewPrepApp() {
                           <p style={{fontSize:14,fontWeight:600,color:'#111827',marginBottom:2}}>Download your results</p>
                           <p style={{fontSize:13,color:'#9CA3AF'}}>Full transcript with questions, answers, and feedback.</p>
                         </div>
-                        <button className="bp" onClick={downloadCopy} style={{padding:'10px 20px',fontSize:14,flexShrink:0}}>⬇ Download</button>
+                        <button className="bp" onClick={downloadCopy} style={{padding:'10px 20px',fontSize:14,flexShrink:0}}> Download</button>
                       </div>
                     </div>
                     <div style={{display:'flex',gap:10}}>
@@ -1366,7 +1366,7 @@ export default function InterviewPrepApp() {
                             </div>
                             {r.feedback.key_points?.length>0&&(
                               <div style={{background:'#EFF6FF',border:'1px solid #BFDBFE',borderRadius:10,padding:'14px 16px'}}>
-                                <p style={{fontSize:11,fontWeight:700,color:'#1D4ED8',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>💡 What a strong answer covers</p>
+                                <p style={{fontSize:11,fontWeight:700,color:'#1D4ED8',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}> What a strong answer covers</p>
                                 {r.feedback.key_points.map((kp,j)=><div key={j} style={{display:'flex',gap:10,marginBottom:6}}><span style={{fontWeight:700,color:'#3B82F6',flexShrink:0}}>{j+1}.</span><p style={{fontSize:13,color:'#1E40AF',lineHeight:1.5}}>{kp}</p></div>)}
                               </div>
                             )}
@@ -1381,7 +1381,7 @@ export default function InterviewPrepApp() {
                           <p style={{fontSize:14,fontWeight:600,color:'#111827',marginBottom:2}}>Download your results</p>
                           <p style={{fontSize:13,color:'#9CA3AF'}}>Full transcript with questions, answers, and feedback.</p>
                         </div>
-                        <button className="bp" onClick={downloadCopy} style={{padding:'10px 20px',fontSize:14,flexShrink:0}}>⬇ Download</button>
+                        <button className="bp" onClick={downloadCopy} style={{padding:'10px 20px',fontSize:14,flexShrink:0}}> Download</button>
                       </div>
                     </div>
                     <div style={{display:'flex',gap:10}}>
@@ -1415,14 +1415,14 @@ export default function InterviewPrepApp() {
                       <div style={{textAlign:'center',padding:'60px 0'}}>
                         {!user ? (
                           <>
-                            <p style={{fontSize:40,marginBottom:16}}>🔒</p>
+                            <p style={{fontSize:40,marginBottom:16}}></p>
                             <p style={{fontSize:18,fontWeight:600,color:'#374151',marginBottom:8}}>Sign in to track your progress</p>
                             <p style={{color:'#9CA3AF',marginBottom:24,fontSize:14}}>Create a free account to save your history and see your score trends.</p>
                             <button className="bp" onClick={()=>{setAuthMode('signup');setAuthError('');setPage('signin');}} style={{padding:'12px 28px',fontSize:15}}>Create free account →</button>
                           </>
                         ) : (
                           <>
-                            <p style={{fontSize:40,marginBottom:16}}>📈</p>
+                            <p style={{fontSize:40,marginBottom:16}}></p>
                             <p style={{fontSize:18,fontWeight:600,color:'#374151',marginBottom:8}}>No sessions yet</p>
                             <p style={{color:'#9CA3AF',marginBottom:8,fontSize:14}}>Complete your first interview to start tracking your progress.</p>
                             <p style={{color:'#D1D5DB',marginBottom:24,fontSize:13}}>You'll see your score trends, practice breakdown by role, and session history here.</p>
