@@ -848,7 +848,7 @@ export default function InterviewPrepApp() {
                     skills: [
                       { name: 'Senior Generalist Engineering', desc: 'Comfortable in Python and TypeScript, able to read SQL, comfortable enough with infrastructure to deploy and debug independently. Most FDE listings emphasize model integration, evals, and pipeline work over greenfield framework design.' },
                       { name: 'Rapid Prototyping Under Pressure', desc: 'OpenAI requires up to 50% travel. You will be at a customer site with a deadline and ambiguous requirements. Building something working in hours — not perfect, but working — is more valuable than clean architecture.' },
-                      { name: 'Model Integration and Evals', desc: 'Building RAG systems, prompt pipelines, and evaluation frameworks against customer data. Understanding why a retrieval pipeline fails on a specific customer's documents.' },
+                      { name: 'Model Integration and Evals', desc: 'Building RAG systems, prompt pipelines, and evaluation frameworks against customer data. Understanding why a retrieval pipeline fails on a specific customer documents.' },
                       { name: 'Hostile Environment Debugging', desc: 'Diagnosing failures in systems you did not build, with limited logging, in environments with strict security constraints. This takes real experience to develop.' },
                       { name: 'Customer Trust Building', desc: 'Customers give FDEs access to sensitive production systems. Building that trust by being technically credible and reliably honest about what is and is not feasible is central to the role.' },
                       { name: 'Product Feedback Loop', desc: 'Ramp describes FDEs as embedding within core product engineering teams. What you learn in the field shapes the roadmap. The best FDEs are engineers and product managers simultaneously.' },
@@ -873,7 +873,7 @@ export default function InterviewPrepApp() {
                       "Managing the end-of-engagement transition: ensuring the customer's team can operate what was built without the deployment team present",
                     ],
                     skills: [
-                      { name: 'Requirement Extraction', desc: 'Running a 2-hour discovery session with a room of stakeholders and leaving with a clear, specific list of what needs to be built — not a list of everyone's wishes.' },
+                      { name: 'Requirement Extraction', desc: 'Running a 2-hour discovery session with a room of stakeholders and leaving with a clear, specific list of what needs to be built — not a list of everyone\'s wishes.' },
                       { name: 'Scope Management', desc: 'Enterprise customers consistently add scope throughout a deployment. The FDPM must say no — often to people with more organizational power — in ways that preserve the relationship.' },
                       { name: 'Technical Fluency', desc: 'Not a coder, but sufficient technical understanding to know when an engineer is overcomplicating something, when a request is infeasible, and when a technical risk is being understated.' },
                       { name: 'Executive Presence', desc: 'FDPMs regularly present to VP and C-suite stakeholders at customer organizations. Communicating program status clearly, including bad news, without causing panic is a core skill.' },
