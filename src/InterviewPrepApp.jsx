@@ -646,13 +646,7 @@ export default function InterviewPrepApp() {
                   <button className="bg" onClick={()=>setPage('home')} style={{padding:'5px 12px',fontSize:13}}>← Back</button>
                   {role&&ROLE_CFG[role]&&<div style={{padding:'3px 10px',borderRadius:20,background:ROLE_CFG[role].bg,border:`1px solid ${ROLE_CFG[role].border}`,fontSize:12,fontWeight:600,color:ROLE_CFG[role].color}}>{role}</div>}
                   <div style={{padding:'3px 10px',borderRadius:20,background:'#F9FAFB',border:'1px solid #E5E7EB',fontSize:12,color:'#6B7280'}}>{industry}</div>
-                  {company && COMPANY_PERSONAS[company] && (
-                    <div style={{padding:'3px 10px',borderRadius:20,fontSize:12,fontWeight:600,
-                      background:COMPANY_PERSONAS[company].bg,border:`1px solid ${COMPANY_PERSONAS[company].border}`,
-                      color:COMPANY_PERSONAS[company].color}}>
-                      {COMPANY_PERSONAS[company].icon} {company}
-                    </div>
-                  )}
+
                 </div>
                 <div style={{fontSize:13,color:'#9CA3AF',flexShrink:0}}>Round {mockTurnCount} of {MOCK_TURNS}</div>
               </div>
@@ -1082,25 +1076,7 @@ export default function InterviewPrepApp() {
                     </div>
                   </div>
                   {/* Company, only for mock */}
-                  {format==='mock'&&(
-                    <div className="fu d1" style={{marginBottom:24}}>
-                      <p style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:10}}>Target company</p>
-                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:8}}>
-                        {Object.entries(COMPANY_PERSONAS).map(([name,cfg])=>(
-                          <div key={name} onClick={()=>setCompany(name)}
-                            style={{padding:'10px 12px',borderRadius:10,cursor:'pointer',transition:'all .15s',position:'relative',
-                              border:company===name?`2px solid ${cfg.color}`:'1px solid #E5E7EB',
-                              background:company===name?cfg.bg:'#fff'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
-                              
-                              <p style={{fontSize:13,fontWeight:600,color:company===name?cfg.color:'#374151'}}>{name}</p>
-                            </div>
-                            <p style={{fontSize:11,color:'#9CA3AF',lineHeight:1.3}}>{cfg.tagline}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+
                   {/* Industry */}
                   <div className="fu d2" style={{marginBottom:28}}>
                     <p style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:10}}>Industry focus</p>
@@ -1176,13 +1152,7 @@ export default function InterviewPrepApp() {
                         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                           {cfgR&&<span style={{fontSize:12,background:cfgR.bg,border:`1px solid ${cfgR.border}`,color:cfgR.color,padding:'3px 10px',borderRadius:20,fontWeight:600}}>{role}</span>}
                           <span style={{fontSize:12,background:'#F9FAFB',border:'1px solid #E5E7EB',color:'#6B7280',padding:'3px 10px',borderRadius:20}}>{industry}</span>
-                          {company && COMPANY_PERSONAS[company] && (
-                            <span style={{fontSize:12,padding:'3px 10px',borderRadius:20,fontWeight:600,
-                              background:COMPANY_PERSONAS[company].bg,border:`1px solid ${COMPANY_PERSONAS[company].border}`,
-                              color:COMPANY_PERSONAS[company].color}}>
-                              {COMPANY_PERSONAS[company].icon} {company}
-                            </span>
-                          )}
+
                         </div>
                       </div>
                       <div className="card" style={{textAlign:'center',padding:'16px 28px'}}>
