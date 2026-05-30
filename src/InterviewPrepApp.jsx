@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QUESTION_BANK, INDUSTRIES, ROLES, OPENING_PROBLEMS } from './questions';
+import { QUESTION_BANK, INDUSTRIES, ROLES, OPENING_PROBLEMS, MOCK_TARGETS } from './questions';
 
 const G = () => (
   <style>{`
@@ -194,9 +194,12 @@ export default function InterviewPrepApp() {
 
     if(format==='mock'){
       const prob=OPENING_PROBLEMS[r]?.[industry]||OPENING_PROBLEMS[r]?.['General'];
+      const target=MOCK_TARGETS[r]?.[industry]||MOCK_TARGETS[r]?.['General'];
       setOpeningProblem(prob.problem);
       setMockMessages([{role:'interviewer',content:prob.problem}]);
-      setSessionMeta({role:r,mode:'mock',format:'mock',industry,sessionId:Math.random().toString(36).slice(2),problemTitle:prob.title});
+      setSessionMeta({role:r,mode:'mock',format:'mock',industry,sessionId:Math.random().toString(36).slice(2),
+        problemTitle:prob.title,keyComponents:target?.keyComponents||[],
+        hints:target?.hints||[],idealSolution:target?.idealSolution||''});
     } else {
       const bank=QUESTION_BANK[industry][r][format];
       const key=`${r}-${industry}-${format}`;
@@ -220,7 +223,8 @@ export default function InterviewPrepApp() {
     try{
       // Get next interviewer response
       const res=await fetch('/api/mock',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({mode:'turn',messages:updatedMessages,role,industry,difficulty,turn:newTurn,maxTurns,openingProblem})});
+        body:JSON.stringify({mode:'turn',messages:updatedMessages,role,industry,difficulty,turn:newTurn,maxTurns,
+          openingProblem,keyComponents:sessionMeta.keyComponents||[],hints:sessionMeta.hints||[]})});
       const data=await res.json();
       if(!res.ok)throw new Error(data.error||'Failed.');
       const withReply=[...updatedMessages,{role:'interviewer',content:data.reply}];
@@ -230,7 +234,8 @@ export default function InterviewPrepApp() {
       // If this was the final turn, get scores
       if(newTurn>=maxTurns){
         const scoreRes=await fetch('/api/mock',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({mode:'score',messages:withReply,role,industry,difficulty,openingProblem})});
+          body:JSON.stringify({mode:'score',messages:withReply,role,industry,difficulty,
+            openingProblem,keyComponents:sessionMeta.keyComponents||[]})});
         const scoreData=await scoreRes.json();
         if(scoreRes.ok&&scoreData.score){
           setMockScore(scoreData.score);
@@ -649,7 +654,32 @@ export default function InterviewPrepApp() {
                         {mockScore.improvements.map((s,j)=><div key={j} style={{display:'flex',gap:8,marginBottom:8}}><span style={{color:'#F59E0B',fontWeight:700,flexShrink:0}}>→</span><p style={{fontSize:13,color:'#78350F',lineHeight:1.5}}>{s}</p></div>)}
                       </div>
                     </div>
-                    {/* Conversation transcript */}
+                    {/* Components covered vs missed */}
+                    {(mockScore.components_covered?.length>0||mockScore.components_missed?.length>0)&&(
+                      <div className="s2 fu d3" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+                        {mockScore.components_covered?.length>0&&(
+                          <div style={{background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:12,padding:'16px 18px'}}>
+                            <p style={{fontSize:11,fontWeight:700,color:'#15803D',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>✓ What you identified</p>
+                            {mockScore.components_covered.map((c,j)=><div key={j} style={{display:'flex',gap:8,marginBottom:6}}><span style={{color:'#22C55E',fontWeight:700,flexShrink:0}}>+</span><p style={{fontSize:13,color:'#166534',lineHeight:1.5}}>{c}</p></div>)}
+                          </div>
+                        )}
+                        {mockScore.components_missed?.length>0&&(
+                          <div style={{background:'#FFFBEB',border:'1px solid #FDE68A',borderRadius:12,padding:'16px 18px'}}>
+                            <p style={{fontSize:11,fontWeight:700,color:'#B45309',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>✗ What you missed</p>
+                            {mockScore.components_missed.map((c,j)=><div key={j} style={{display:'flex',gap:8,marginBottom:6}}><span style={{color:'#F59E0B',fontWeight:700,flexShrink:0}}>→</span><p style={{fontSize:13,color:'#78350F',lineHeight:1.5}}>{c}</p></div>)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Ideal solution */}
+                    {sessionMeta.idealSolution&&(
+                      <div className="card fu" style={{padding:'20px 24px',marginBottom:14,background:'#EFF6FF',border:'1px solid #BFDBFE'}}>
+                        <p style={{fontSize:12,fontWeight:700,color:'#1D4ED8',marginBottom:12,textTransform:'uppercase',letterSpacing:'.05em',display:'flex',alignItems:'center',gap:6}}>
+                          💡 Model Answer — What a Strong Response Covers
+                        </p>
+                        <p style={{fontSize:14,color:'#1E40AF',lineHeight:1.8}}>{sessionMeta.idealSolution}</p>
+                      </div>
+                    )}
                     <div className="card fu d4" style={{padding:'20px 24px',marginBottom:14}}>
                       <p style={{fontSize:14,fontWeight:600,color:'#111827',marginBottom:16}}>Full Conversation</p>
                       <div style={{display:'flex',flexDirection:'column',gap:14}}>
