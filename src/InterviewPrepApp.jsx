@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QUESTION_BANK, INDUSTRIES, ROLES, OPENING_PROBLEMS, MOCK_TARGETS } from './questions';
+import { QUESTION_BANK, INDUSTRIES, ROLES, OPENING_PROBLEMS, MOCK_TARGETS, EXTRA_PROBLEMS } from './questions';
 
 const G = () => (
   <style>{`
@@ -196,13 +196,28 @@ export default function InterviewPrepApp() {
     setErrorMsg('');setConfirmExit(false);
 
     if(format==='mock'){
-      const prob=OPENING_PROBLEMS[r]?.[industry]||OPENING_PROBLEMS[r]?.['General'];
-      const target=MOCK_TARGETS[r]?.[industry]||MOCK_TARGETS[r]?.['General'];
+      // Build pool: original problem + extras for this role/industry
+      const base = OPENING_PROBLEMS[r]?.[industry] || OPENING_PROBLEMS[r]?.['General'];
+      const baseTarget = MOCK_TARGETS[r]?.[industry] || MOCK_TARGETS[r]?.['General'];
+      const extras = EXTRA_PROBLEMS?.[r]?.[industry] || EXTRA_PROBLEMS?.[r]?.['General'] || [];
+      const allProblems = [
+        { title: base.title, problem: base.problem, keyComponents: baseTarget?.keyComponents||[], hints: baseTarget?.hints||[], idealSolution: baseTarget?.idealSolution||'' },
+        ...extras.map(e => ({ title: e.title, problem: e.problem, keyComponents: e.keyComponents||[], hints: e.hints||[], idealSolution: e.idealSolution||'' })),
+      ];
+      // Rotate: avoid repeating until all problems shown
+      const storageKey = `mock_${r}_${industry}`;
+      const used = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const available = allProblems.map((_,i)=>i).filter(i=>!used.includes(i));
+      const pool = available.length > 0 ? available : allProblems.map((_,i)=>i);
+      const idx = pool[Math.floor(Math.random() * pool.length)];
+      const newUsed = available.length > 1 ? [...used, idx] : [idx];
+      localStorage.setItem(storageKey, JSON.stringify(newUsed));
+      const prob = allProblems[idx];
       setOpeningProblem(prob.problem);
       setMockMessages([{role:'interviewer',content:prob.problem}]);
       setSessionMeta({role:r,mode:'mock',format:'mock',industry,sessionId:Math.random().toString(36).slice(2),
-        problemTitle:prob.title,keyComponents:target?.keyComponents||[],
-        hints:target?.hints||[],idealSolution:target?.idealSolution||''});
+        problemTitle:prob.title,keyComponents:prob.keyComponents,
+        hints:prob.hints,idealSolution:prob.idealSolution});
     } else {
       const bank=QUESTION_BANK[industry][r][format];
       const key=`${r}-${industry}-${format}`;
