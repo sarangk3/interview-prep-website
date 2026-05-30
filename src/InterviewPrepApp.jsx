@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QUESTION_BANK, INDUSTRIES, ROLES, OPENING_PROBLEMS, MOCK_TARGETS, EXTRA_PROBLEMS } from './questions';
+import { QUESTION_BANK, INDUSTRIES, ROLES, OPENING_PROBLEMS, MOCK_TARGETS, EXTRA_PROBLEMS, COMPANY_PERSONAS } from './questions';
 import { supabase } from './supabase';
 
 const G = () => (
@@ -180,7 +180,7 @@ export default function InterviewPrepApp() {
   const [upgradeWorking,setUpgradeWorking] = useState(false);
   const [interviews,setInterviews] = useState([]);
   const [format,setFormat]         = useState('text');
-  const [difficulty,setDifficulty] = useState('medium');
+  const [company,setCompany]       = useState('Anthropic'); // replaces difficulty for mock
   const [mockMessages,setMockMessages]   = useState([]);
   const [mockTurnCount,setMockTurnCount] = useState(0);
   const [mockThinking,setMockThinking]   = useState(false);
@@ -258,7 +258,7 @@ export default function InterviewPrepApp() {
     if(!user) return;
     const { data } = await supabase.from('interviews').insert([{
       user_id: user.id, role: iv.role, industry: iv.industry, format: iv.format,
-      mode: iv.mode, difficulty: iv.difficulty||null, score: iv.score,
+      mode: iv.mode, difficulty: iv.company||null, score: iv.score,
       problem_title: iv.problemTitle||null, responses: iv.responses,
     }]).select().single();
     if(data) setInterviews(prev=>[data,...prev]);
@@ -286,7 +286,7 @@ export default function InterviewPrepApp() {
         await supabase.from('interviews').insert([{
           user_id: u.id, role: pendingInterview.role, industry: pendingInterview.industry,
           format: pendingInterview.format, mode: pendingInterview.mode,
-          difficulty: pendingInterview.difficulty||null, score: pendingInterview.score,
+          difficulty: pendingInterview.company||null, score: pendingInterview.score,
           problem_title: pendingInterview.problemTitle||null, responses: pendingInterview.responses,
         }]);
         setPendingInterview(null);
@@ -330,17 +330,14 @@ export default function InterviewPrepApp() {
     setUpgradeWorking(false);
   };
 
-  const MOCK_TURNS = { easy:3, medium:5, hard:7 };
+  const MOCK_TURNS = 5;
 
   const startInterview=(r,m)=>{
     // Gate: AI features require login (cost control)
     if(!user && (format==='text' || format==='mock')) {
       setAuthMode('signup'); setAuthError(''); setPage('signin'); return;
     }
-    // Gate: Hard difficulty requires Pro
-    if(format==='mock' && difficulty==='hard' && !isPro) {
-      setUpgradeReason('hard'); setShowUpgrade(true); return;
-    }
+    // Company selector replaces difficulty — no Pro gate on company selection
     // Gate: More than 1 mock interview requires Pro
     if(format==='mock' && user && !isPro && (profile?.mocks_completed||0) >= 1) {
       setUpgradeReason('mock'); setShowUpgrade(true); return;
@@ -371,7 +368,7 @@ export default function InterviewPrepApp() {
       const prob = allProblems[idx];
       setOpeningProblem(prob.problem);
       setMockMessages([{role:'interviewer',content:prob.problem}]);
-      setSessionMeta({role:r,mode:'mock',format:'mock',industry,sessionId:Math.random().toString(36).slice(2),
+      setSessionMeta({role:r,mode:'mock',format:'mock',industry,company,sessionId:Math.random().toString(36).slice(2),
         problemTitle:prob.title,keyComponents:prob.keyComponents,
         hints:prob.hints,idealSolution:prob.idealSolution});
     } else {
@@ -387,7 +384,7 @@ export default function InterviewPrepApp() {
   const submitMockResponse=async()=>{
     if(!response.trim()||mockThinking)return;
     const newTurn=mockTurnCount+1;
-    const maxTurns=MOCK_TURNS[difficulty]||5;
+    const maxTurns=MOCK_TURNS;
     const candidateMsg={role:'candidate',content:response.trim()};
     const updatedMessages=[...mockMessages,candidateMsg];
     setMockMessages(updatedMessages);
@@ -399,7 +396,7 @@ export default function InterviewPrepApp() {
       const { data:{ session:msess } } = await supabase.auth.getSession();
       const mockHeaders={'Content-Type':'application/json',...(msess?.access_token?{'Authorization':`Bearer ${msess.access_token}`}:{})};
       const res=await fetch('/api/mock',{method:'POST',headers:mockHeaders,
-        body:JSON.stringify({mode:'turn',messages:updatedMessages,role,industry,difficulty,turn:newTurn,maxTurns,
+        body:JSON.stringify({mode:'turn',messages:updatedMessages,role,industry,company,turn:newTurn,maxTurns:
           openingProblem,keyComponents:sessionMeta.keyComponents||[],hints:sessionMeta.hints||[]})});
       const data=await res.json();
       if(!res.ok)throw new Error(data.error||'Failed.');
@@ -410,12 +407,12 @@ export default function InterviewPrepApp() {
       // If this was the final turn, get scores
       if(newTurn>=maxTurns){
         const scoreRes=await fetch('/api/mock',{method:'POST',headers:mockHeaders,
-          body:JSON.stringify({mode:'score',messages:withReply,role,industry,difficulty,
+          body:JSON.stringify({mode:'score',messages:withReply,role,industry,company,
             openingProblem,keyComponents:sessionMeta.keyComponents||[]})});
         const scoreData=await scoreRes.json();
         if(scoreRes.ok&&scoreData.score){
           setMockScore(scoreData.score);
-          const iv={role,mode:'mock',format:'mock',industry,difficulty,
+          const iv={role,mode:'mock',format:'mock',industry,company,
             date:new Date().toISOString(),score:scoreData.score.overall,
             problemTitle:sessionMeta.problemTitle,messages:withReply,mockScore:scoreData.score};
           if(user){ saveInterview(iv); setPage('results'); }
@@ -571,14 +568,14 @@ export default function InterviewPrepApp() {
                  "You've used your free answers for today"}
               </h2>
               <p style={{color:'#6B7280',fontSize:14,lineHeight:1.6}}>
-                {upgradeReason==='hard'?'Hard difficulty runs 7 rounds of rigorous questioning — reserved for Pro members.':
+                {upgradeReason==='hard'?'Upgrade to Pro to unlock unlimited mock interviews and written answers.':
                  upgradeReason==='mock'?'Upgrade to Pro for unlimited mock interviews with AI-guided feedback.':
                  'Upgrade to Pro for unlimited AI-scored written answers.'}
               </p>
             </div>
             {/* Pro benefits */}
             <div style={{background:'#F5F3FF',borderRadius:12,padding:'14px 18px',marginBottom:20}}>
-              {['Unlimited AI-scored written answers','Unlimited mock interviews','Hard difficulty (7 rigorous rounds)','Full session history & score trends'].map((b,i)=>(
+              {['Unlimited AI-scored written answers','Unlimited mock interviews','All companies and interview styles','Full session history & score trends'].map((b,i)=>(
                 <div key={i} style={{display:'flex',alignItems:'center',gap:10,marginBottom:i<3?8:0}}>
                   <span style={{color:'#7C3AED',fontWeight:700,flexShrink:0}}>✓</span>
                   <span style={{fontSize:13,color:'#4C1D95'}}>{b}</span>
@@ -648,17 +645,19 @@ export default function InterviewPrepApp() {
                   <button className="bg" onClick={()=>setPage('home')} style={{padding:'5px 12px',fontSize:13}}>← Back</button>
                   {role&&ROLE_CFG[role]&&<div style={{padding:'3px 10px',borderRadius:20,background:ROLE_CFG[role].bg,border:`1px solid ${ROLE_CFG[role].border}`,fontSize:12,fontWeight:600,color:ROLE_CFG[role].color}}>{role}</div>}
                   <div style={{padding:'3px 10px',borderRadius:20,background:'#F9FAFB',border:'1px solid #E5E7EB',fontSize:12,color:'#6B7280'}}>{industry}</div>
-                  <div style={{padding:'3px 10px',borderRadius:20,fontSize:12,fontWeight:600,
-                    background:difficulty==='easy'?'#F0FDF4':difficulty==='medium'?'#FFFBEB':'#FEF2F2',
-                    color:difficulty==='easy'?'#059669':difficulty==='medium'?'#D97706':'#DC2626'}}>
-                    {difficulty.charAt(0).toUpperCase()+difficulty.slice(1)}
-                  </div>
+                  {company && COMPANY_PERSONAS[company] && (
+                    <div style={{padding:'3px 10px',borderRadius:20,fontSize:12,fontWeight:600,
+                      background:COMPANY_PERSONAS[company].bg,border:`1px solid ${COMPANY_PERSONAS[company].border}`,
+                      color:COMPANY_PERSONAS[company].color}}>
+                      {COMPANY_PERSONAS[company].icon} {company}
+                    </div>
+                  )}
                 </div>
-                <div style={{fontSize:13,color:'#9CA3AF',flexShrink:0}}>Round {mockTurnCount} of {MOCK_TURNS[difficulty]||5}</div>
+                <div style={{fontSize:13,color:'#9CA3AF',flexShrink:0}}>Round {mockTurnCount} of {MOCK_TURNS}</div>
               </div>
               {/* Progress */}
               <div style={{height:3,background:'#F3F4F6',flexShrink:0}}>
-                <div style={{height:'100%',background:'#6366F1',width:`${(mockTurnCount/(MOCK_TURNS[difficulty]||5))*100}%`,transition:'width .5s ease'}}/>
+                <div style={{height:'100%',background:'#6366F1',width:`${(mockTurnCount/(MOCK_TURNS))*100}%`,transition:'width .5s ease'}}/>
               </div>
               {/* Chat messages */}
               <div style={{flex:1,overflowY:'auto',padding:'24px',display:'flex',flexDirection:'column',gap:16}}>
@@ -685,7 +684,7 @@ export default function InterviewPrepApp() {
                 <div ref={chatEndRef}/>
               </div>
               {/* Input area */}
-              {mockTurnCount<(MOCK_TURNS[difficulty]||5)&&!mockThinking&&(
+              {mockTurnCount<(MOCK_TURNS)&&!mockThinking&&(
                 <div style={{background:'#fff',borderTop:'1px solid #E5E7EB',padding:'16px 24px',flexShrink:0}}>
                   <div style={{position:'relative'}}>
                     <textarea value={response} onChange={e=>setResponse(e.target.value)}
@@ -858,21 +857,21 @@ export default function InterviewPrepApp() {
                       ))}
                     </div>
                   </div>
-                  {/* Difficulty — only for mock */}
+                  {/* Company — only for mock */}
                   {format==='mock'&&(
                     <div className="fu d1" style={{marginBottom:24}}>
-                      <p style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:10}}>Difficulty</p>
-                      <div style={{display:'flex',gap:8}}>
-                        {[{id:'easy',label:'Easy',desc:'3 rounds · Supportive'},
-                          {id:'medium',label:'Medium',desc:'5 rounds · Challenging'},
-                          {id:'hard',label:'Hard',desc:'7 rounds · Rigorous',proOnly:true}].map(d=>(
-                          <div key={d.id} onClick={()=>setDifficulty(d.id)} style={{flex:1,padding:'12px 14px',borderRadius:10,cursor:'pointer',transition:'all .15s',position:'relative',
-                            border:difficulty===d.id?`2px solid ${d.id==='easy'?'#059669':d.id==='medium'?'#D97706':'#DC2626'}`:'1px solid #E5E7EB',
-                            background:difficulty===d.id?`${d.id==='easy'?'#F0FDF4':d.id==='medium'?'#FFFBEB':'#FEF2F2'}`:'#fff',
-                            opacity:(d.proOnly&&!isPro)?0.7:1}}>
-                            {d.proOnly&&!isPro&&<span style={{position:'absolute',top:6,right:8,fontSize:9,fontWeight:700,color:'#7C3AED',background:'#EDE9FE',padding:'1px 5px',borderRadius:6}}>PRO</span>}
-                            <p style={{fontSize:13,fontWeight:600,color:difficulty===d.id?(d.id==='easy'?'#059669':d.id==='medium'?'#D97706':'#DC2626'):'#374151',marginBottom:2}}>{d.label}</p>
-                            <p style={{fontSize:11,color:'#9CA3AF'}}>{d.desc}</p>
+                      <p style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:10}}>Target company</p>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:8}}>
+                        {Object.entries(COMPANY_PERSONAS).map(([name,cfg])=>(
+                          <div key={name} onClick={()=>setCompany(name)}
+                            style={{padding:'10px 12px',borderRadius:10,cursor:'pointer',transition:'all .15s',position:'relative',
+                              border:company===name?`2px solid ${cfg.color}`:'1px solid #E5E7EB',
+                              background:company===name?cfg.bg:'#fff'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
+                              <span style={{fontSize:14}}>{cfg.icon}</span>
+                              <p style={{fontSize:13,fontWeight:600,color:company===name?cfg.color:'#374151'}}>{name}</p>
+                            </div>
+                            <p style={{fontSize:11,color:'#9CA3AF',lineHeight:1.3}}>{cfg.tagline}</p>
                           </div>
                         ))}
                       </div>
@@ -893,7 +892,7 @@ export default function InterviewPrepApp() {
                   <div className="fu d3" style={{marginBottom:28}}>
                     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
                       <h2 style={{fontSize:16,fontWeight:600,color:'#111827'}}>{format==='mock'?'Mock Interview':'Full Mock Interview'}</h2>
-                      <span style={{fontSize:11,background:'#F3F4F6',color:'#6B7280',padding:'3px 10px',borderRadius:20}}>{format==='mock'?`${MOCK_TURNS[difficulty]||5} rounds`:'5 questions'}</span>
+                      <span style={{fontSize:11,background:'#F3F4F6',color:'#6B7280',padding:'3px 10px',borderRadius:20}}>{format==='mock'?`${MOCK_TURNS} rounds`:'5 questions'}</span>
                     </div>
                     <div className="rg" style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12}}>
                       {ROLES.map(r=>{
@@ -903,7 +902,7 @@ export default function InterviewPrepApp() {
                           <div key={r} className="rc" onClick={()=>startInterview(r,'full')}>
                             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
                               <div style={{width:36,height:36,borderRadius:8,background:c.bg,border:`1px solid ${c.border}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{c.icon}</div>
-                              <span style={{fontSize:11,color:'#9CA3AF',background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:20,padding:'3px 10px'}}>{format==='mock'?`${MOCK_TURNS[difficulty]||5} rounds`:'5 Qs'}</span>
+                              <span style={{fontSize:11,color:'#9CA3AF',background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:20,padding:'3px 10px'}}>{format==='mock'?`${MOCK_TURNS} rounds`:'5 Qs'}</span>
                             </div>
                             <p style={{fontWeight:600,fontSize:14,color:'#111827',marginBottom:4}}>{c.card||r}</p>
                             {prob?<p style={{fontSize:12,color:'#9CA3AF',marginBottom:14,lineHeight:1.4}}>{prob.title}</p>:<p style={{fontSize:12,color:'#9CA3AF',marginBottom:14}}>{c.label}</p>}
@@ -953,11 +952,13 @@ export default function InterviewPrepApp() {
                         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                           {cfgR&&<span style={{fontSize:12,background:cfgR.bg,border:`1px solid ${cfgR.border}`,color:cfgR.color,padding:'3px 10px',borderRadius:20,fontWeight:600}}>{role}</span>}
                           <span style={{fontSize:12,background:'#F9FAFB',border:'1px solid #E5E7EB',color:'#6B7280',padding:'3px 10px',borderRadius:20}}>{industry}</span>
-                          <span style={{fontSize:12,padding:'3px 10px',borderRadius:20,fontWeight:600,
-                            background:difficulty==='easy'?'#F0FDF4':difficulty==='medium'?'#FFFBEB':'#FEF2F2',
-                            color:difficulty==='easy'?'#059669':difficulty==='medium'?'#D97706':'#DC2626'}}>
-                            {difficulty.charAt(0).toUpperCase()+difficulty.slice(1)}
-                          </span>
+                          {company && COMPANY_PERSONAS[company] && (
+                            <span style={{fontSize:12,padding:'3px 10px',borderRadius:20,fontWeight:600,
+                              background:COMPANY_PERSONAS[company].bg,border:`1px solid ${COMPANY_PERSONAS[company].border}`,
+                              color:COMPANY_PERSONAS[company].color}}>
+                              {COMPANY_PERSONAS[company].icon} {company}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="card" style={{textAlign:'center',padding:'16px 28px'}}>
