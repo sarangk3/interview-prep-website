@@ -125,7 +125,7 @@ const Sidebar = ({ page, setPage, interviews, user, onLogout, onSignIn, isPro, o
       </div>
       <div style={{padding:'14px 0',flex:1}}>
         <p style={{fontSize:11,fontWeight:600,color:'#9CA3AF',padding:'0 12px',marginBottom:6,textTransform:'uppercase',letterSpacing:'.06em'}}>Practice</p>
-        {[{id:'home',label:'Question Bank',icon:''},{id:'dashboard',label:'My Progress',icon:''},{id:'roles',label:'Role Guides',icon:''}].map(item=>(
+        {[{id:'roles',label:'Role Guides',icon:''},{id:'home',label:'Question Bank',icon:''},{id:'dashboard',label:'My Progress',icon:''}].map(item=>(
           <button key={item.id} className={`ni ${page===item.id?'on':''}`} onClick={()=>setPage(item.id)}>
             {item.label}
           </button>
@@ -165,7 +165,7 @@ const Sidebar = ({ page, setPage, interviews, user, onLogout, onSignIn, isPro, o
 };
 
 export default function InterviewPrepApp() {
-  const [page,setPage]             = useState('home');
+  const [page,setPage]             = useState('roles');
   const [user,setUser]             = useState(null);
   const [authLoading,setAuthLoading] = useState(true);
   const [authMode,setAuthMode]     = useState('signup');
