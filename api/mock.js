@@ -1,4 +1,5 @@
 import { callLLM } from './_llm.js';
+import { createClient } from '@supabase/supabase-js';
 
 const DIFFICULTY_CONFIG = {
   easy:   { turns:3, tone:'Be encouraging. Give hints generously if the candidate misses key components. Accept directionally correct answers.' },

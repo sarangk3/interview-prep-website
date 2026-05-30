@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QUESTION_BANK, INDUSTRIES, ROLES, OPENING_PROBLEMS, MOCK_TARGETS, EXTRA_PROBLEMS } from './questions';
+import { supabase } from './supabase';
 
 const G = () => (
   <style>{`
@@ -101,7 +102,7 @@ const TrendChart = ({ data }) => {
 };
 
 /* Sidebar defined OUTSIDE main component — stable reference, never remounts */
-const Sidebar = ({ page, setPage, interviews }) => {
+const Sidebar = ({ page, setPage, interviews, user, onLogout }) => {
   const st=interviews.length;
   const avg=st?Math.round(interviews.reduce((s,i)=>s+i.score,0)/st):null;
   return (
@@ -133,6 +134,12 @@ const Sidebar = ({ page, setPage, interviews }) => {
         </div>
       )}
       <div style={{padding:'0 0 16px'}}>
+        {user && (
+          <div style={{marginBottom:10,padding:'10px 12px',background:'#F9FAFB',borderRadius:10,border:'1px solid #E5E7EB'}}>
+            <p style={{fontSize:11,color:'#9CA3AF',marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.email}</p>
+            <button onClick={onLogout} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:'#DC2626',fontWeight:500,padding:0}}>Sign out</button>
+          </div>
+        )}
         <div style={{background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:10,padding:'10px 12px'}}>
           <p style={{fontSize:12,fontWeight:600,color:'#15803D',marginBottom:2}}>Free Plan</p>
           <p style={{fontSize:11,color:'#6B7280'}}>Unlimited MC · 20 AI/day</p>
@@ -144,8 +151,14 @@ const Sidebar = ({ page, setPage, interviews }) => {
 
 export default function InterviewPrepApp() {
   const [page,setPage]             = useState('home');
+  const [user,setUser]             = useState(null);
+  const [authLoading,setAuthLoading] = useState(true);
+  const [authMode,setAuthMode]     = useState('login'); // 'login' | 'signup'
+  const [authEmail,setAuthEmail]   = useState('');
+  const [authPassword,setAuthPassword] = useState('');
+  const [authError,setAuthError]   = useState('');
+  const [authWorking,setAuthWorking] = useState(false);
   const [interviews,setInterviews] = useState([]);
-  const [savedEmail,setSavedEmail] = useState(null);
   const [format,setFormat]         = useState('text');
   const [difficulty,setDifficulty] = useState('medium');
   const [mockMessages,setMockMessages]   = useState([]);
@@ -175,14 +188,69 @@ export default function InterviewPrepApp() {
   const chatEndRef = useRef(null);
   const speechOk = typeof window!=='undefined'&&!!(window.SpeechRecognition||window.webkitSpeechRecognition);
 
-  useEffect(()=>{ const s=localStorage.getItem('ipData'); if(s){const d=JSON.parse(s);setInterviews(d.interviews||[]);setSavedEmail(d.email||null);} },[]);
+  // Supabase auth state + interview loading
+  useEffect(()=>{
+    supabase.auth.getSession().then(({ data:{ session } })=>{
+      setUser(session?.user ?? null);
+      if(session?.user) loadInterviews(session.user.id);
+      setAuthLoading(false);
+    });
+    const { data:{ subscription } } = supabase.auth.onAuthStateChange((_evt, session)=>{
+      setUser(session?.user ?? null);
+      if(session?.user) loadInterviews(session.user.id);
+      else { setInterviews([]); setPage('home'); }
+    });
+    return ()=>subscription.unsubscribe();
+  },[]);
+
+  const loadInterviews = async (userId) => {
+    const { data } = await supabase.from('interviews').select('*').eq('user_id', userId).order('created_at',{ascending:false});
+    if(data) setInterviews(data);
+  };
+
+  const saveInterview = async (iv) => {
+    if(!user) return;
+    const { data } = await supabase.from('interviews').insert([{
+      user_id: user.id, role: iv.role, industry: iv.industry, format: iv.format,
+      mode: iv.mode, difficulty: iv.difficulty||null, score: iv.score,
+      problem_title: iv.problemTitle||null, responses: iv.responses,
+    }]).select().single();
+    if(data) setInterviews(prev=>[data,...prev]);
+  };
+
+  // Auth handlers
+  const handleAuth = async () => {
+    if(!authEmail.trim()||!authPassword.trim()) return setAuthError('Please enter your email and password.');
+    setAuthWorking(true); setAuthError('');
+    try {
+      let result;
+      if(authMode==='signup') {
+        result = await supabase.auth.signUp({ email:authEmail.trim(), password:authPassword });
+        if(!result.error && result.data.user && !result.data.session) {
+          setAuthError('Check your email to confirm your account, then log in.');
+          setAuthMode('login'); setAuthWorking(false); return;
+        }
+      } else {
+        result = await supabase.auth.signInWithPassword({ email:authEmail.trim(), password:authPassword });
+      }
+      if(result.error) setAuthError(result.error.message);
+    } catch(e) { setAuthError('Something went wrong. Please try again.'); }
+    setAuthWorking(false);
+  };
+
+  const handleLogout = async () => { await supabase.auth.signOut(); setInterviews([]); };
+
+  const handleForgotPassword = async () => {
+    if(!authEmail.trim()) return setAuthError('Enter your email address first.');
+    const { error } = await supabase.auth.resetPasswordForEmail(authEmail.trim());
+    setAuthError(error ? error.message : 'Password reset email sent — check your inbox.');
+  };
   useEffect(()=>{ if(page==='results'){const t=setTimeout(()=>setBarsAnim(true),400);return()=>clearTimeout(t);} setBarsAnim(false); },[page]);
   useEffect(()=>{ if(page!=='interview'){setElapsed(0);return;} const t=setInterval(()=>setElapsed(e=>e+1),1000);return()=>clearInterval(t); },[page]);
   useEffect(()=>setElapsed(0),[qIndex]);
   useEffect(()=>{ chatEndRef.current?.scrollIntoView({behavior:'smooth'}); },[mockMessages,mockThinking]);
   useEffect(()=>()=>{try{recRef.current?.stop();}catch(e){}},[qIndex,page]);
 
-  const persist=(ivs,email)=>localStorage.setItem('ipData',JSON.stringify({interviews:ivs,email:email??savedEmail}));
   const fmt=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
   const wc=response.trim().split(/\s+/).filter(Boolean).length;
 
@@ -240,7 +308,9 @@ export default function InterviewPrepApp() {
 
     try{
       // Get next interviewer response
-      const res=await fetch('/api/mock',{method:'POST',headers:{'Content-Type':'application/json'},
+      const { data:{ session:msess } } = await supabase.auth.getSession();
+      const mockHeaders={'Content-Type':'application/json',...(msess?.access_token?{'Authorization':`Bearer ${msess.access_token}`}:{})};
+      const res=await fetch('/api/mock',{method:'POST',headers:mockHeaders,
         body:JSON.stringify({mode:'turn',messages:updatedMessages,role,industry,difficulty,turn:newTurn,maxTurns,
           openingProblem,keyComponents:sessionMeta.keyComponents||[],hints:sessionMeta.hints||[]})});
       const data=await res.json();
@@ -251,17 +321,16 @@ export default function InterviewPrepApp() {
 
       // If this was the final turn, get scores
       if(newTurn>=maxTurns){
-        const scoreRes=await fetch('/api/mock',{method:'POST',headers:{'Content-Type':'application/json'},
+        const scoreRes=await fetch('/api/mock',{method:'POST',headers:mockHeaders,
           body:JSON.stringify({mode:'score',messages:withReply,role,industry,difficulty,
             openingProblem,keyComponents:sessionMeta.keyComponents||[]})});
         const scoreData=await scoreRes.json();
         if(scoreRes.ok&&scoreData.score){
           setMockScore(scoreData.score);
-          // Save to history
-          const iv={id:Date.now(),role,mode:'mock',format:'mock',industry,difficulty,
+          const iv={role,mode:'mock',format:'mock',industry,difficulty,
             date:new Date().toISOString(),score:scoreData.score.overall,
             problemTitle:sessionMeta.problemTitle,messages:withReply,mockScore:scoreData.score};
-          const updated=[...interviews,iv];setInterviews(updated);persist(updated);
+          saveInterview(iv);
           setPage('results');
         }
       }
@@ -284,7 +353,8 @@ export default function InterviewPrepApp() {
     setSubmitting(true);
     const q=sessionQs[qIndex];
     try{
-      const res=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
+      const { data:{ session:sess } } = await supabase.auth.getSession();
+      const res=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json',...(sess?.access_token?{'Authorization':`Bearer ${sess.access_token}`}:{})},
         body:JSON.stringify({meta:{role,industry,question:q,sessionId:sessionMeta.sessionId},answer:response})});
       const data=await res.json();
       if(!res.ok)throw new Error(data.error||'Request failed.');
@@ -311,14 +381,14 @@ export default function InterviewPrepApp() {
 
   const finishInterview=(responses,fmt2)=>{
     const score=fmt2==='mc'?Math.round((responses.filter(r=>r.isCorrect).length/responses.length)*10):Math.round(responses.reduce((s,r)=>s+r.feedback.overall,0)/responses.length);
-    const iv={id:Date.now(),role,mode,format:fmt2,industry,date:new Date().toISOString(),score,responses};
-    const updated=[...interviews,iv];setInterviews(updated);persist(updated);
+    const iv={role,mode,format:fmt2,industry,date:new Date().toISOString(),score,responses};
+    saveInterview(iv);
     setResults(responses);setPage('results');
   };
 
   const buildTranscript=()=>{
     const isMC=results[0]&&'isCorrect' in results[0];
-    let out=`INTERVIEW PREP — SESSION SUMMARY\n${'='.repeat(34)}\nRole: ${sessionMeta.role}\nIndustry: ${sessionMeta.industry}\nDate: ${new Date().toLocaleString()}\n${emailInput?`Email: ${emailInput}\n`:''}\n`;
+    let out=`INTERVIEW PREP — SESSION SUMMARY\n${'='.repeat(34)}\nRole: ${sessionMeta.role}\nIndustry: ${sessionMeta.industry}\nDate: ${new Date().toLocaleString()}\n${user?.email?`Email: ${user.email}\n`:''}\n`;
     results.forEach((r,i)=>{
       out+=`--- Q${i+1} ---\n${r.question}\n\n`;
       if(isMC){r.options.forEach((o,j)=>{out+=`  ${String.fromCharCode(65+j)}. ${o}${j===r.correct?' [CORRECT]':j===r.chosen?' [YOUR PICK]':''}\n`;});out+=`\nResult: ${r.isCorrect?'Correct':'Incorrect'}\nWhy: ${r.explanation}\n\n`;}
@@ -332,11 +402,7 @@ export default function InterviewPrepApp() {
     a.href=url;a.download=`interview-${(sessionMeta.role||'session').replace(/[^a-z]/gi,'')}-${Date.now()}.txt`;
     document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   };
-  const submitEmail=()=>{
-    if(!emailInput.trim())return;
-    setSavedEmail(emailInput.trim());persist(interviews,emailInput.trim());
-    setEmailDone(true);downloadCopy();
-  };
+  const submitEmail=()=>{ setEmailDone(true); downloadCopy(); };
 
   const stats=()=>{
     if(!interviews.length)return null;
@@ -354,6 +420,63 @@ export default function InterviewPrepApp() {
   return (
     <>
       <G/>
+
+      {/* ── Loading ── */}
+      {authLoading && (
+        <div style={{position:'fixed',inset:0,background:'#F9FAFB',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2000}}>
+          <div style={{textAlign:'center'}}>
+            <div style={{width:40,height:40,borderRadius:12,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,margin:'0 auto 16px'}}>⚡</div>
+            <p style={{color:'#9CA3AF',fontSize:14}}>Loading…</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Auth page ── */}
+      {!authLoading && !user && (
+        <div style={{minHeight:'100vh',background:'#F9FAFB',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
+          <div style={{width:'100%',maxWidth:400}}>
+            <div style={{textAlign:'center',marginBottom:36}}>
+              <div style={{width:48,height:48,borderRadius:14,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,margin:'0 auto 16px'}}>⚡</div>
+              <h1 style={{fontSize:26,fontWeight:700,color:'#111827',marginBottom:6}}>AI Interview Solutions</h1>
+              <p style={{color:'#9CA3AF',fontSize:14}}>Practice interviews for AI-era tech roles</p>
+            </div>
+            <div className="card" style={{padding:32}}>
+              <div style={{display:'flex',gap:0,marginBottom:24,background:'#F3F4F6',borderRadius:10,padding:4}}>
+                {['login','signup'].map(m=>(
+                  <button key={m} onClick={()=>{setAuthMode(m);setAuthError('');}} style={{flex:1,padding:'8px',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600,background:authMode===m?'#fff':'transparent',color:authMode===m?'#111827':'#9CA3AF',boxShadow:authMode===m?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s'}}>
+                    {m==='login'?'Sign in':'Create account'}
+                  </button>
+                ))}
+              </div>
+              {authError && <div style={{background:'#FEF2F2',border:'1px solid #FECACA',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:'#991B1B'}}>{authError}</div>}
+              <div style={{marginBottom:14}}>
+                <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Email</label>
+                <input type="email" placeholder="you@company.com" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAuth()}
+                  style={{width:'100%',padding:'10px 14px',border:'1px solid #E5E7EB',borderRadius:8,fontSize:14,color:'#111827',background:'#F9FAFB'}}/>
+              </div>
+              <div style={{marginBottom:20}}>
+                <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Password</label>
+                <input type="password" placeholder="••••••••" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAuth()}
+                  style={{width:'100%',padding:'10px 14px',border:'1px solid #E5E7EB',borderRadius:8,fontSize:14,color:'#111827',background:'#F9FAFB'}}/>
+              </div>
+              <button className="bp" onClick={handleAuth} disabled={authWorking} style={{width:'100%',padding:'12px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                {authWorking?<><span className="spinner"/>Working…</>:authMode==='login'?'Sign in →':'Create account →'}
+              </button>
+              {authMode==='login' && (
+                <button onClick={handleForgotPassword} style={{background:'none',border:'none',cursor:'pointer',width:'100%',marginTop:12,fontSize:13,color:'#9CA3AF',textAlign:'center'}}>
+                  Forgot password?
+                </button>
+              )}
+            </div>
+            <p style={{textAlign:'center',color:'#D1D5DB',fontSize:12,marginTop:20}}>
+              Free forever · No credit card needed
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main app (logged in) ── */}
+      {!authLoading && user && (<>
       {/* ── Inline error banner ── */}
       {errorMsg && (
         <div style={{position:'fixed',top:0,left:0,right:0,zIndex:1000,background:'#FEF2F2',borderBottom:'1px solid #FECACA',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
@@ -378,7 +501,7 @@ export default function InterviewPrepApp() {
         </div>
       )}
       <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
-        <Sidebar page={page} setPage={setPage} interviews={interviews}/>
+        <Sidebar page={page} setPage={setPage} interviews={interviews} user={user} onLogout={handleLogout}/>
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
           {/* ════ INTERVIEW ════ */}
@@ -741,26 +864,13 @@ export default function InterviewPrepApp() {
                     </div>
                     {/* Email + CTAs */}
                     <div className="card" style={{padding:'20px 24px',marginBottom:14}}>
-                      {!emailDone?(
-                        <>
-                          <p style={{fontSize:14,fontWeight:600,color:'#111827',marginBottom:4}}>Get a copy of your session</p>
-                          <p style={{fontSize:13,color:'#9CA3AF',marginBottom:14}}>Enter your email to download the full conversation and scores.</p>
-                          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                            <input type="email" placeholder="you@email.com" value={emailInput} onChange={e=>setEmailInput(e.target.value)}
-                              style={{flex:1,minWidth:180,padding:'10px 14px',border:'1px solid #E5E7EB',borderRadius:8,fontSize:14,background:'#F9FAFB',color:'#111827'}}/>
-                            <button className="bp" onClick={submitEmail} disabled={!emailInput.trim()} style={{padding:'10px 20px',fontSize:14}}>Download</button>
-                          </div>
-                        </>
-                      ):(
-                        <div style={{display:'flex',alignItems:'center',gap:14}}>
-                          <div style={{width:40,height:40,borderRadius:10,background:'#F0FDF4',border:'1px solid #BBF7D0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>✅</div>
-                          <div style={{flex:1}}>
-                            <p style={{fontSize:14,fontWeight:600,color:'#111827'}}>Download started</p>
-                            <p style={{fontSize:13,color:'#9CA3AF',marginTop:2}}>Check your downloads folder.</p>
-                          </div>
-                          <button className="bg" onClick={downloadCopy} style={{padding:'8px 16px',fontSize:13}}>Download again</button>
+                                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                        <div>
+                          <p style={{fontSize:14,fontWeight:600,color:'#111827',marginBottom:2}}>Download your results</p>
+                          <p style={{fontSize:13,color:'#9CA3AF'}}>Full transcript with questions, answers, and feedback.</p>
                         </div>
-                      )}
+                        <button className="bp" onClick={downloadCopy} style={{padding:'10px 20px',fontSize:14,flexShrink:0}}>⬇ Download</button>
+                      </div>
                     </div>
                     <div style={{display:'flex',gap:10}}>
                       <button className="bp" onClick={()=>startInterview(role,'full')} style={{flex:1,padding:'13px',fontSize:14}}>Try Again</button>
@@ -869,28 +979,15 @@ export default function InterviewPrepApp() {
                         )}
                       </div>
                     ))}
-                    {/* Email */}
+                    {/* Download */}
                     <div className="card" style={{padding:'22px 24px',marginBottom:14}}>
-                      {!emailDone?(
-                        <>
-                          <p style={{fontSize:15,fontWeight:600,color:'#111827',marginBottom:4}}>Get a copy of your results</p>
-                          <p style={{fontSize:13,color:'#9CA3AF',marginBottom:14}}>Enter your email to download a full transcript of this session.</p>
-                          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                            <input type="email" placeholder="you@email.com" value={emailInput} onChange={e=>setEmailInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submitEmail()}
-                              style={{flex:1,minWidth:180,padding:'10px 14px',border:'1px solid #E5E7EB',borderRadius:8,fontSize:14,color:'#111827',background:'#F9FAFB'}}/>
-                            <button className="bp" onClick={submitEmail} disabled={!emailInput.trim()} style={{padding:'10px 20px',fontSize:14}}>Download</button>
-                          </div>
-                        </>
-                      ):(
-                        <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                          <div style={{width:40,height:40,borderRadius:10,background:'#F0FDF4',border:'1px solid #BBF7D0',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:20}}>✅</div>
-                          <div style={{flex:1}}>
-                            <p style={{fontSize:14,fontWeight:600,color:'#111827'}}>Download started</p>
-                            <p style={{fontSize:13,color:'#9CA3AF',marginTop:2}}>Check your downloads folder.</p>
-                          </div>
-                          <button className="bg" onClick={downloadCopy} style={{padding:'8px 16px',fontSize:13}}>Download again</button>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                        <div>
+                          <p style={{fontSize:14,fontWeight:600,color:'#111827',marginBottom:2}}>Download your results</p>
+                          <p style={{fontSize:13,color:'#9CA3AF'}}>Full transcript with questions, answers, and feedback.</p>
                         </div>
-                      )}
+                        <button className="bp" onClick={downloadCopy} style={{padding:'10px 20px',fontSize:14,flexShrink:0}}>⬇ Download</button>
+                      </div>
                     </div>
                     <div style={{display:'flex',gap:10}}>
                       <button className="bp" onClick={()=>startInterview(role,mode)} style={{flex:1,padding:'13px',fontSize:14}}>Retry {role?.split(' ')[0]}</button>
@@ -988,6 +1085,7 @@ export default function InterviewPrepApp() {
           )}
         </div>
       </div>
+      </>)}
     </>
   );
 }
