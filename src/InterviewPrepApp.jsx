@@ -38,11 +38,25 @@ const G = () => (
 );
 
 const ROLE_CFG = {
-  'AI Solutions Architect':           {color:'#7C3AED',bg:'#F5F3FF',border:'#DDD6FE',icon:'🧠',label:'LLMs, RAG & AI Systems'},
-  'Forward Deployed Engineer':        {color:'#2563EB',bg:'#EFF6FF',border:'#BFDBFE',icon:'⚙️',label:'Embedded Customer Builds'},
-  'Forward Deployed Product Manager': {color:'#D97706',bg:'#FFFBEB',border:'#FDE68A',icon:'📋',label:'Customer-Embedded PM'},
-  'TPM':                              {color:'#DC2626',bg:'#FEF2F2',border:'#FECACA',icon:'📊',label:'Programs & Delivery'},
+  'AI Solutions Architect':           {color:'#7C3AED',bg:'#F5F3FF',border:'#DDD6FE',icon:'🧠',label:'LLMs, RAG & AI Systems',   short:'AI Architect'},
+  'Forward Deployed Engineer':        {color:'#2563EB',bg:'#EFF6FF',border:'#BFDBFE',icon:'⚙️',label:'Embedded Customer Builds', short:'FD Engineer'},
+  'Forward Deployed Product Manager': {color:'#D97706',bg:'#FFFBEB',border:'#FDE68A',icon:'📋',label:'Customer-Embedded PM',     short:'FD PM'},
+  'TPM':                              {color:'#DC2626',bg:'#FEF2F2',border:'#FECACA',icon:'📊',label:'Programs & Delivery',      short:'TPM'},
 };
+
+/* Pick a question not recently shown — cycles through all before repeating */
+const getNextQuestion = (bank, key) => {
+  const used = JSON.parse(localStorage.getItem(`q_${key}`) || '[]');
+  const available = bank.map((_,i)=>i).filter(i=>!used.includes(i));
+  const pool = available.length > 0 ? available : bank.map((_,i)=>i);
+  const idx = pool[Math.floor(Math.random() * pool.length)];
+  const newUsed = available.length > 1 ? [...used, idx] : [idx];
+  localStorage.setItem(`q_${key}`, JSON.stringify(newUsed));
+  return { q: bank[idx], idx };
+};
+
+/* Shuffle array for full-interview mode */
+const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
 const IND_ICONS = {General:'🌐',Healthcare:'🏥',Fintech:'💳','E-commerce':'🛒'};
 const TIPS = {
   'AI Solutions Architect':           "Focus on trade-offs between RAG, fine-tuning, and prompting — not just what you'd build.",
@@ -160,7 +174,14 @@ export default function InterviewPrepApp() {
 
   const startInterview=(r,m)=>{
     const bank=QUESTION_BANK[industry][r][format];
-    const qs=m==='full'?bank:[bank[Math.floor(Math.random()*bank.length)]];
+    const key=`${r}-${industry}-${format}`;
+    let qs;
+    if(m==='full'){
+      qs=shuffle(bank);
+    } else {
+      const {q}=getNextQuestion(bank,key);
+      qs=[q];
+    }
     setRole(r);setMode(m);setQIndex(0);setSessionQs(qs);
     setSessionMeta({role:r,mode:m,format,industry,sessionId:Math.random().toString(36).slice(2)});
     setAllResponses([]);setResponse('');setMcChoice(null);
@@ -416,7 +437,7 @@ export default function InterviewPrepApp() {
                           <div key={r} className="rc" onClick={()=>startInterview(r,'deep')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px'}}>
                             <div>
                               <div style={{width:6,height:6,borderRadius:'50%',background:c.color,marginBottom:8}}/>
-                              <p style={{fontSize:13,fontWeight:600,color:'#374151'}}>{r.split(' ')[0]}</p>
+                              <p style={{fontSize:13,fontWeight:600,color:'#374151'}}>{c.short}</p>
                             </div>
                             <span style={{color:'#D1D5DB',fontSize:18}}>›</span>
                           </div>
