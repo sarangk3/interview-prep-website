@@ -1778,26 +1778,22 @@ export default function InterviewPrepApp() {
                         <div className="rg" style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
                           {ROLE_ARTICLES.map(r=>(
                             <div key={r.key} className="rc" onClick={()=>{setSelectedRole(r.key);setActiveTab('role');}} style={{padding:'24px'}}>
-                              <div style={{display:'flex',alignItems:'flex-start',gap:14,marginBottom:14}}>
-                                
-                                <div>
-                                  <p style={{fontWeight:700,fontSize:15,color:'#111827',marginBottom:3}}>{r.key}</p>
-                                  <p style={{fontSize:12,color:r.cfg.color,fontWeight:600}}>{r.cfg.label}</p>
-                                </div>
+                              <div style={{marginBottom:16}}>
+                                <p style={{fontWeight:700,fontSize:17,color:'#111827',marginBottom:5}}>{r.key}</p>
+                                <p style={{fontSize:13,color:r.cfg.color,fontWeight:600}}>{r.cfg.label}</p>
                               </div>
-                              <p style={{fontSize:13,color:'#6B7280',lineHeight:1.6,marginBottom:14}}>{r.what.substring(0,140)}…</p>
-                              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:14}}>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:20}}>
                                 {r.companiesHiring.slice(0,4).map(c=>(
-                                  <span key={c} style={{fontSize:11,background:'#F3F4F6',color:'#6B7280',padding:'2px 8px',borderRadius:10}}>{c}</span>
+                                  <span key={c} style={{fontSize:11,background:'#F3F4F6',color:'#6B7280',padding:'3px 10px',borderRadius:10}}>{c}</span>
                                 ))}
                               </div>
                               <div style={{display:'flex',gap:8}}>
                                 <button onClick={e=>{e.stopPropagation();setSelectedRole(r.key);setActiveTab('role');}}
-                                  style={{flex:1,padding:'8px 0',border:`1px solid ${r.cfg.border}`,borderRadius:8,background:r.cfg.bg,color:r.cfg.color,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                                  style={{flex:1,padding:'11px 0',border:`1px solid ${r.cfg.border}`,borderRadius:8,background:r.cfg.bg,color:r.cfg.color,fontSize:13,fontWeight:600,cursor:'pointer'}}>
                                   Role overview →
                                 </button>
                                 <button onClick={e=>{e.stopPropagation();setSelectedRole(r.key);setActiveTab('interview');}}
-                                  style={{flex:1,padding:'8px 0',border:'1px solid #D1FAE5',borderRadius:8,background:'#F0FDF4',color:'#059669',fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                                  style={{flex:1,padding:'11px 0',border:'1px solid #D1FAE5',borderRadius:8,background:'#F0FDF4',color:'#059669',fontSize:13,fontWeight:600,cursor:'pointer'}}>
                                   Interview guide →
                                 </button>
                               </div>
