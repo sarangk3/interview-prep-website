@@ -264,10 +264,12 @@ export default function InterviewPrepApp() {
   const [waitlistWorking,setWaitlistWorking] = useState(false);
   const [showEmailGate,setShowEmailGate]     = useState(false);
   const [emailGatePendingRole,setEmailGatePendingRole] = useState(null);
+  const [emailGateStep,setEmailGateStep]     = useState('email'); // 'email' | 'otp'
+  const [emailGateOtp,setEmailGateOtp]       = useState('');
   const [userName,setUserName]               = useState(()=>localStorage.getItem('user_name')||'');
   const [showNamePrompt,setShowNamePrompt]   = useState(false);
   const [pendingRole,setPendingRole]         = useState(null);
-  const [ttsEnabled,setTtsEnabled]           = useState(true);
+  const [ttsEnabled,setTtsEnabled]           = useState(false);
   const [ttsPlaying,setTtsPlaying]           = useState(false);
   const [mockMessages,setMockMessages]   = useState([]);
   const [mockTurnCount,setMockTurnCount] = useState(0);
@@ -805,22 +807,37 @@ export default function InterviewPrepApp() {
     if (!waitlistEmail.trim()) return;
     setWaitlistWorking(true);
     try {
-      await fetch('/api/feedback-submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'Email Gate',
-          message: 'User submitted email to continue practicing.',
-          email: waitlistEmail.trim(),
-          page,
-        }),
+      const { error } = await supabase.auth.signInWithOtp({
+        email: waitlistEmail.trim(),
+        options: { shouldCreateUser: true },
       });
-      // Grant access — reset free trial so they can continue
-      localStorage.removeItem('free_written_done');
-      localStorage.removeItem('free_mock_done');
-      setShowEmailGate(false);
-      doStartInterview(emailGatePendingRole, 'full');
-    } catch(e) { console.error(e); }
+      if (error) { setAuthError(error.message); }
+      else { setEmailGateStep('otp'); }
+    } catch(e) { setAuthError('Something went wrong. Please try again.'); }
+    setWaitlistWorking(false);
+  };
+
+  const verifyEmailGateOtp = async () => {
+    if (!emailGateOtp.trim()) return;
+    setWaitlistWorking(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: waitlistEmail.trim(),
+        token: emailGateOtp.trim(),
+        type: 'email',
+      });
+      if (error) { setAuthError('Invalid code. Please try again.'); }
+      else {
+        // Verified — reset gate, allow interview to start
+        localStorage.removeItem('free_written_done');
+        localStorage.removeItem('free_mock_done');
+        setShowEmailGate(false);
+        setEmailGateStep('email');
+        setEmailGateOtp('');
+        setAuthError('');
+        doStartInterview(emailGatePendingRole, 'full');
+      }
+    } catch(e) { setAuthError('Verification failed. Please try again.'); }
     setWaitlistWorking(false);
   };
 
@@ -1061,28 +1078,52 @@ export default function InterviewPrepApp() {
           <div style={{background:'#fff',borderRadius:20,padding:36,maxWidth:400,width:'100%',boxShadow:'0 24px 80px rgba(0,0,0,0.2)'}}>
             <div style={{textAlign:'center',marginBottom:24}}>
               <div style={{width:52,height:52,borderRadius:14,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff',margin:'0 auto 16px'}}>AI</div>
-              <h2 style={{fontSize:20,fontWeight:700,color:'#111827',marginBottom:8}}>Enter your email to continue</h2>
-              <p style={{fontSize:14,color:'#6B7280',lineHeight:1.6}}>You have used your free session. Enter your email to keep practicing — no password needed.</p>
+              {emailGateStep==='email' ? (<>
+                <h2 style={{fontSize:20,fontWeight:700,color:'#111827',marginBottom:8}}>Enter your email to continue</h2>
+                <p style={{fontSize:14,color:'#6B7280',lineHeight:1.6}}>We will send a quick verification code to your inbox so you can keep practicing.</p>
+              </>) : (<>
+                <h2 style={{fontSize:20,fontWeight:700,color:'#111827',marginBottom:8}}>Check your inbox</h2>
+                <p style={{fontSize:14,color:'#6B7280',lineHeight:1.6}}>We sent a 6-digit code to <strong>{waitlistEmail}</strong>. Enter it below to continue.</p>
+              </>)}
             </div>
-            <div style={{marginBottom:14}}>
-              <input type="email" placeholder="you@company.com" autoFocus
-                value={waitlistEmail}
-                onChange={e=>setWaitlistEmail(e.target.value)}
-                onKeyDown={async e=>{
-                  if(e.key==='Enter'&&waitlistEmail.trim()){
-                    await submitEmailGate();
-                  }
-                }}
-                style={{width:'100%',padding:'12px 14px',border:'1px solid #E5E7EB',borderRadius:10,fontSize:15,color:'#111827',background:'#F9FAFB'}}/>
-            </div>
-            <button className="bp" onClick={submitEmailGate} disabled={!waitlistEmail.trim()||waitlistWorking}
-              style={{width:'100%',padding:'13px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:10}}>
-              {waitlistWorking?<><span className="spinner"/>Just a moment…</>:'Continue →'}
-            </button>
-            <button onClick={()=>setShowEmailGate(false)}
-              style={{background:'none',border:'none',cursor:'pointer',width:'100%',fontSize:13,color:'#9CA3AF',textAlign:'center'}}>
-              Maybe later
-            </button>
+            {authError && <div style={{background:'#FEF2F2',border:'1px solid #FECACA',borderRadius:8,padding:'10px 14px',marginBottom:14,fontSize:13,color:'#991B1B'}}>{authError}</div>}
+            {emailGateStep==='email' ? (
+              <>
+                <div style={{marginBottom:14}}>
+                  <input type="email" placeholder="you@company.com" autoFocus
+                    value={waitlistEmail} onChange={e=>setWaitlistEmail(e.target.value)}
+                    onKeyDown={e=>e.key==='Enter'&&submitEmailGate()}
+                    style={{width:'100%',padding:'12px 14px',border:'1px solid #E5E7EB',borderRadius:10,fontSize:15,color:'#111827',background:'#F9FAFB'}}/>
+                </div>
+                <button className="bp" onClick={submitEmailGate} disabled={!waitlistEmail.trim()||waitlistWorking}
+                  style={{width:'100%',padding:'13px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:10}}>
+                  {waitlistWorking?<><span className="spinner"/>Sending code…</>:'Send verification code →'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{marginBottom:14}}>
+                  <input type="text" placeholder="123456" autoFocus maxLength={6}
+                    value={emailGateOtp} onChange={e=>setEmailGateOtp(e.target.value.replace(/\D/g,''))}
+                    onKeyDown={e=>e.key==='Enter'&&verifyEmailGateOtp()}
+                    style={{width:'100%',padding:'12px 14px',border:'1px solid #E5E7EB',borderRadius:10,fontSize:22,color:'#111827',background:'#F9FAFB',textAlign:'center',letterSpacing:'0.3em',fontWeight:600}}/>
+                </div>
+                <button className="bp" onClick={verifyEmailGateOtp} disabled={emailGateOtp.length<6||waitlistWorking}
+                  style={{width:'100%',padding:'13px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:10}}>
+                  {waitlistWorking?<><span className="spinner"/>Verifying…</>:'Verify and continue →'}
+                </button>
+                <button onClick={()=>{setEmailGateStep('email');setEmailGateOtp('');setAuthError('');}}
+                  style={{background:'none',border:'none',cursor:'pointer',width:'100%',fontSize:13,color:'#9CA3AF',textAlign:'center'}}>
+                  Use a different email
+                </button>
+              </>
+            )}
+            {emailGateStep==='email' && (
+              <button onClick={()=>{setShowEmailGate(false);setEmailGateStep('email');setAuthError('');}}
+                style={{background:'none',border:'none',cursor:'pointer',width:'100%',fontSize:13,color:'#9CA3AF',textAlign:'center'}}>
+                Maybe later
+              </button>
+            )}
           </div>
         </div>
       )}
