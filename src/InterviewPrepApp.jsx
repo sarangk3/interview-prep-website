@@ -1242,7 +1242,7 @@ export default function InterviewPrepApp() {
                     </div>
                   </div>
                 ))}
-                {mockThinking&&(
+                {mockThinking&&mockTurnCount<MOCK_TURNS&&(
                   <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start'}}>
                     <div style={{fontSize:11,color:'#9CA3AF',marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',padding:'0 4px'}}>{sessionMeta?.interviewerName||'Interviewer'}</div>
                     <div className="msg-interviewer" style={{padding:'14px 18px',display:'flex',gap:5,alignItems:'center'}}>
