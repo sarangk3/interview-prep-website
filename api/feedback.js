@@ -71,7 +71,7 @@ Reply ONLY in JSON, no markdown:
     try { const m = text.match(/\{[\s\S]*\}/); fb = JSON.parse(m ? m[0] : text); }
     catch { fb = { technical_depth:5, communication_clarity:5, structure:5, approach:5, overall:5, strengths:['Some relevant points'], improvements:['Add specifics','Use a framework'], feedback:'Needs more depth.', key_points:['Use a clear framework','Cover trade-offs','Concrete examples'] }; }
 
-    logToAirtable({ 'Name':`${role} · ${industry} · ${fb.overall}/10`, 'Role':role, 'Industry':industry, 'Format':'text', 'Score':fb.overall, 'Question':question, 'Answer':answer, 'Feedback':fb.feedback, 'Session ID':sessionId, 'Timestamp':new Date().toISOString() });
+    logToAirtable({ 'Name':`${role} · ${industry} · ${fb.overall}/10`, 'Role':role, 'Industry':industry, 'Format':'text', 'Score':fb.overall, 'Question':question, 'Answer':answer, 'Feedback':fb.feedback, 'Session ID':sessionId, 'User': user?.email || 'Anonymous', 'Timestamp':new Date().toISOString() });
 
     return res.status(200).json({ content: [{ text: JSON.stringify(fb) }] });
   } catch (err) {
