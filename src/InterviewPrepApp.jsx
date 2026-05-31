@@ -537,8 +537,7 @@ export default function InterviewPrepApp() {
   };
 
   const startInterview=(r,m)=>{
-    // Gate: free trial used up
-    if(!hasFreeTrialLeft(format)) { setPage('subscribe'); return; }
+
     // Gate: more than 1 mock requires Pro
     if(format==='mock' && user && !isPro && (profile?.mocks_completed||0) >= 1) {
       setUpgradeReason('mock'); setShowUpgrade(true); return;
@@ -657,8 +656,7 @@ export default function InterviewPrepApp() {
       setMockMessages(withReply);
       speakText(data.reply);
       setMockTurnCount(newTurn);
-      // After turn 1, gate anonymous users — let them read the first reply then prompt
-      if (newTurn === 1 && !user) { setMockAuthGate(true); }
+
       // Scoring is triggered manually via the "See my results" button
       // so the user can read the final debrief before leaving
     }catch(err){setErrorMsg(typeof err==='string'?err:(err?.message||'Error. Please try again.'));}
@@ -690,11 +688,7 @@ export default function InterviewPrepApp() {
       catch{fb={technical_depth:5,communication_clarity:5,structure:5,approach:5,overall:5,strengths:['Some relevant points'],improvements:['Add more specifics','Use a framework'],feedback:'Needs more depth.',key_points:['Use a clear framework','Cover trade-offs','Concrete examples']};}
       const next=[...allResponses,{question:q,answer:response,feedback:fb}];
       setAllResponses(next);
-      if(qIndex+1<sessionQs.length){
-        // After Q1, gate anonymous users before continuing to Q2
-        if(qIndex===0 && !user){ setWrittenAuthGate(true); setQIndex(qIndex+1); setResponse(''); }
-        else { setQIndex(qIndex+1); setResponse(''); }
-      }
+      if(qIndex+1<sessionQs.length){ setQIndex(qIndex+1); setResponse(''); }
       else finishInterview(next,'text');
     }catch(err){setErrorMsg((typeof err==='string'?err:err?.message)||'Error getting feedback. Try Multiple Choice mode which works offline.');}
     finally{setSubmitting(false);}
