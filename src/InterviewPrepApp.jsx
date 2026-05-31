@@ -1845,42 +1845,74 @@ export default function InterviewPrepApp() {
                 );
               })()}
               {/* ── SUBSCRIPTION PAGE ── */}
-              {page==='subscribe' && (
-                <div style={{maxWidth:520,margin:'0 auto',padding:'48px 24px'}}>
-                  <div style={{textAlign:'center',marginBottom:36}}>
-                    <div style={{fontSize:13,fontWeight:600,color:'#6366F1',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12}}>You have used your free sessions</div>
-                    <h1 style={{fontSize:28,fontWeight:700,color:'#111827',marginBottom:12}}>Unlock unlimited practice</h1>
-                    <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6}}>You have completed your free written response and mock interview. Upgrade to keep practicing with full AI feedback.</p>
-                  </div>
-                  <div style={{background:'#F5F3FF',border:'1px solid #DDD6FE',borderRadius:14,padding:'20px 24px',marginBottom:24}}>
-                    <p style={{fontSize:12,fontWeight:700,color:'#6D28D9',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:14}}>Pro includes</p>
-                    {['Unlimited AI-scored written responses','Unlimited mock interviews across all roles','Full score breakdowns with coaching feedback','All 4 roles and all industries','Full session history and score trends'].map((item,i)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,marginBottom:i<4?10:0}}>
-                        <span style={{color:'#7C3AED',fontWeight:700,flexShrink:0}}>✓</span>
-                        <span style={{fontSize:14,color:'#4C1D95'}}>{item}</span>
+              {page==='subscribe' && (()=>{
+                const [waitlistEmail, setWaitlistEmail] = React.useState(user?.email || '');
+                const [waitlistSent, setWaitlistSent]   = React.useState(false);
+                const [waitlistWorking, setWaitlistWorking] = React.useState(false);
+
+                const submitWaitlist = async () => {
+                  if (!waitlistEmail.trim()) return;
+                  setWaitlistWorking(true);
+                  try {
+                    await fetch('/api/feedback-submit', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        type: 'Waitlist',
+                        message: 'User requested early access / more practice sessions.',
+                        email: waitlistEmail.trim(),
+                        page: 'subscribe',
+                      }),
+                    });
+                    setWaitlistSent(true);
+                  } catch(e) { console.error(e); }
+                  setWaitlistWorking(false);
+                };
+
+                return (
+                  <div style={{maxWidth:480,margin:'0 auto',padding:'48px 24px'}}>
+                    {waitlistSent ? (
+                      <div style={{textAlign:'center',padding:'40px 0'}}>
+                        <div style={{width:64,height:64,borderRadius:'50%',background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 20px',color:'#fff',fontWeight:700}}>✓</div>
+                        <h2 style={{fontSize:22,fontWeight:700,color:'#111827',marginBottom:8}}>You are on the list</h2>
+                        <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6,marginBottom:24}}>We will be in touch at <strong>{waitlistEmail}</strong> when more sessions are available.</p>
+                        <button className="bp" onClick={()=>setPage('home')} style={{padding:'12px 28px',fontSize:15}}>Back to practice</button>
                       </div>
-                    ))}
+                    ) : (
+                      <>
+                        <div style={{textAlign:'center',marginBottom:32}}>
+                          <div style={{width:64,height:64,borderRadius:16,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',fontSize:13,fontWeight:700,color:'#fff',letterSpacing:'-0.5px'}}>AI</div>
+                          <h1 style={{fontSize:26,fontWeight:700,color:'#111827',marginBottom:10}}>Want more practice sessions?</h1>
+                          <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6}}>You have used your free mock interview and written response. Leave your email and we will reach out when more sessions open up.</p>
+                        </div>
+                        <div className="card" style={{padding:'28px',marginBottom:16}}>
+                          <div style={{marginBottom:14}}>
+                            <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Your email</label>
+                            <input type="email" placeholder="you@company.com" value={waitlistEmail}
+                              onChange={e=>setWaitlistEmail(e.target.value)}
+                              onKeyDown={e=>e.key==='Enter'&&submitWaitlist()}
+                              style={{width:'100%',padding:'11px 14px',border:'1px solid #E5E7EB',borderRadius:8,fontSize:14,color:'#111827',background:'#F9FAFB'}}/>
+                          </div>
+                          <button className="bp" onClick={submitWaitlist} disabled={!waitlistEmail.trim()||waitlistWorking}
+                            style={{width:'100%',padding:'12px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                            {waitlistWorking?<><span className="spinner"/>Submitting…</>:'Notify me →'}
+                          </button>
+                        </div>
+                        <div style={{background:'#F5F3FF',border:'1px solid #DDD6FE',borderRadius:12,padding:'16px 20px',marginBottom:20}}>
+                          <p style={{fontSize:12,fontWeight:700,color:'#6D28D9',marginBottom:10}}>What you have already unlocked</p>
+                          {['Detailed score breakdowns with AI coaching','Role and interview guides for SA, FDE, FDPM, TPM','Multiple choice practice, always free'].map((b,i)=>(
+                            <div key={i} style={{display:'flex',gap:8,marginBottom:i<2?6:0}}>
+                              <span style={{color:'#7C3AED',fontWeight:700}}>✓</span>
+                              <span style={{fontSize:13,color:'#4C1D95'}}>{b}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <button className="bg" onClick={()=>setPage('home')} style={{width:'100%',padding:'12px',fontSize:14}}>← Keep browsing</button>
+                      </>
+                    )}
                   </div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
-                    <div style={{background:'#fff',border:'1px solid #E5E7EB',borderRadius:12,padding:'20px',textAlign:'center'}}>
-                      <p style={{fontSize:13,color:'#6B7280',marginBottom:6}}>Monthly</p>
-                      <p style={{fontSize:32,fontWeight:700,color:'#111827',marginBottom:2}}>$19</p>
-                      <p style={{fontSize:12,color:'#9CA3AF',marginBottom:16}}>per month</p>
-                      <button className="bp" onClick={()=>startUpgrade('price_monthly')} style={{width:'100%',padding:'11px',fontSize:14}}>Subscribe →</button>
-                    </div>
-                    <div style={{background:'#111827',borderRadius:12,padding:'20px',textAlign:'center',position:'relative'}}>
-                      <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:'#F59E0B',color:'#fff',fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap'}}>BEST VALUE</div>
-                      <p style={{fontSize:13,color:'#9CA3AF',marginBottom:6}}>30-day pass</p>
-                      <p style={{fontSize:32,fontWeight:700,color:'#fff',marginBottom:2}}>$49</p>
-                      <p style={{fontSize:12,color:'#6B7280',marginBottom:16}}>one-time</p>
-                      <button onClick={()=>startUpgrade('price_pack')} style={{width:'100%',padding:'11px',fontSize:14,background:'#6366F1',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontWeight:600}}>Get access →</button>
-                    </div>
-                  </div>
-                  <p style={{textAlign:'center',fontSize:12,color:'#D1D5DB',marginBottom:20}}>Multiple choice practice is always free and unlimited.</p>
-                  <button className="bg" onClick={()=>setPage('home')} style={{width:'100%',padding:'12px',fontSize:14}}>← Back to question bank</button>
-                  {!user&&(<p style={{textAlign:'center',fontSize:13,color:'#6B7280',marginTop:16}}>Already subscribed?{' '}<button onClick={()=>{setAuthMode('login');setAuthError('');setPage('signin');}} style={{background:'none',border:'none',cursor:'pointer',color:'#6366F1',fontWeight:600,fontSize:13}}>Sign in</button></p>)}
-                </div>
-              )}
+                );
+              })()}
 
               {page==='results-gate' && pendingInterview && (
                 <div style={{maxWidth:480,margin:'0 auto',padding:'48px 24px'}}>
