@@ -177,8 +177,8 @@ const Sidebar = ({ page, setPage, interviews, user, onLogout, onSignIn, isPro, o
   const st = interviews.length;
   const avg = calcAvg(interviews);
   const avgLabel = avg !== null ? (avg + ' out of 10') : '';
-  const planLabel = (user && isPro) ? 'Unlimited everything' : 'Unlimited MC, 5 AI per day';
-  const planTitle = (user && isPro) ? 'Pro' : 'Free Plan';
+  const planLabel = (user && isPro) ? 'Unlimited everything' : '1 free mock · 1 free written · MC unlimited';
+  const planTitle = (user && isPro) ? 'Pro' : 'Free Access';
   return (
     <div className="sb" style={{width:220,background:'#fff',borderRight:'1px solid #E5E7EB',display:'flex',flexDirection:'column',padding:'0 10px',flexShrink:0}}>
       <div style={{padding:'20px 6px 20px',borderBottom:'1px solid #F3F4F6'}}>
