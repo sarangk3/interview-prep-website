@@ -259,6 +259,9 @@ export default function InterviewPrepApp() {
   const [feedbackWorking,setFeedbackWorking] = useState(false);
   const [mockAuthGate,setMockAuthGate]       = useState(false);
   const [writtenAuthGate,setWrittenAuthGate] = useState(false);
+  const [waitlistEmail,setWaitlistEmail]     = useState('');
+  const [waitlistSent,setWaitlistSent]       = useState(false);
+  const [waitlistWorking,setWaitlistWorking] = useState(false);
   const [userName,setUserName]               = useState(()=>localStorage.getItem('user_name')||'');
   const [showNamePrompt,setShowNamePrompt]   = useState(false);
   const [pendingRole,setPendingRole]         = useState(null);
@@ -794,6 +797,21 @@ export default function InterviewPrepApp() {
       }, 2000);
     } catch(e) { console.error(e); }
     setFeedbackWorking(false);
+  };
+
+  const submitWaitlist = async () => {
+    const email = waitlistEmail || user?.email || '';
+    if (!email.trim()) return;
+    setWaitlistWorking(true);
+    try {
+      await fetch('/api/feedback-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'Waitlist', message: 'User requested more practice sessions.', email: email.trim(), page: 'subscribe' }),
+      });
+      setWaitlistSent(true);
+    } catch(e) { console.error(e); }
+    setWaitlistWorking(false);
   };
 
   const openFeedback = () => {
@@ -1845,74 +1863,50 @@ export default function InterviewPrepApp() {
                 );
               })()}
               {/* ── SUBSCRIPTION PAGE ── */}
-              {page==='subscribe' && (()=>{
-                const [waitlistEmail, setWaitlistEmail] = React.useState(user?.email || '');
-                const [waitlistSent, setWaitlistSent]   = React.useState(false);
-                const [waitlistWorking, setWaitlistWorking] = React.useState(false);
-
-                const submitWaitlist = async () => {
-                  if (!waitlistEmail.trim()) return;
-                  setWaitlistWorking(true);
-                  try {
-                    await fetch('/api/feedback-submit', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        type: 'Waitlist',
-                        message: 'User requested early access / more practice sessions.',
-                        email: waitlistEmail.trim(),
-                        page: 'subscribe',
-                      }),
-                    });
-                    setWaitlistSent(true);
-                  } catch(e) { console.error(e); }
-                  setWaitlistWorking(false);
-                };
-
-                return (
-                  <div style={{maxWidth:480,margin:'0 auto',padding:'48px 24px'}}>
-                    {waitlistSent ? (
-                      <div style={{textAlign:'center',padding:'40px 0'}}>
-                        <div style={{width:64,height:64,borderRadius:'50%',background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 20px',color:'#fff',fontWeight:700}}>✓</div>
-                        <h2 style={{fontSize:22,fontWeight:700,color:'#111827',marginBottom:8}}>You are on the list</h2>
-                        <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6,marginBottom:24}}>We will be in touch at <strong>{waitlistEmail}</strong> when more sessions are available.</p>
-                        <button className="bp" onClick={()=>setPage('home')} style={{padding:'12px 28px',fontSize:15}}>Back to practice</button>
+              {page==='subscribe' && (
+                <div style={{maxWidth:480,margin:'0 auto',padding:'48px 24px'}}>
+                  {waitlistSent ? (
+                    <div style={{textAlign:'center',padding:'40px 0'}}>
+                      <div style={{width:64,height:64,borderRadius:'50%',background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 20px',color:'#fff',fontWeight:700}}>✓</div>
+                      <h2 style={{fontSize:22,fontWeight:700,color:'#111827',marginBottom:8}}>You are on the list</h2>
+                      <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6,marginBottom:24}}>We will be in touch at <strong>{waitlistEmail}</strong> when more sessions are available.</p>
+                      <button className="bp" onClick={()=>{setPage('home');setWaitlistSent(false);}} style={{padding:'12px 28px',fontSize:15}}>Back to practice</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{textAlign:'center',marginBottom:32}}>
+                        <div style={{width:64,height:64,borderRadius:16,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',fontSize:13,fontWeight:700,color:'#fff',letterSpacing:'-0.5px'}}>AI</div>
+                        <h1 style={{fontSize:26,fontWeight:700,color:'#111827',marginBottom:10}}>Want more practice sessions?</h1>
+                        <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6}}>You have used your free mock interview and written response. Leave your email and we will reach out when more sessions open up.</p>
                       </div>
-                    ) : (
-                      <>
-                        <div style={{textAlign:'center',marginBottom:32}}>
-                          <div style={{width:64,height:64,borderRadius:16,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',fontSize:13,fontWeight:700,color:'#fff',letterSpacing:'-0.5px'}}>AI</div>
-                          <h1 style={{fontSize:26,fontWeight:700,color:'#111827',marginBottom:10}}>Want more practice sessions?</h1>
-                          <p style={{color:'#6B7280',fontSize:15,lineHeight:1.6}}>You have used your free mock interview and written response. Leave your email and we will reach out when more sessions open up.</p>
+                      <div className="card" style={{padding:'28px',marginBottom:16}}>
+                        <div style={{marginBottom:14}}>
+                          <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Your email</label>
+                          <input type="email" placeholder="you@company.com"
+                            value={waitlistEmail||user?.email||''}
+                            onChange={e=>setWaitlistEmail(e.target.value)}
+                            onKeyDown={e=>{if(e.key==='Enter'&&waitlistEmail.trim()){submitWaitlist();}}}
+                            style={{width:'100%',padding:'11px 14px',border:'1px solid #E5E7EB',borderRadius:8,fontSize:14,color:'#111827',background:'#F9FAFB'}}/>
                         </div>
-                        <div className="card" style={{padding:'28px',marginBottom:16}}>
-                          <div style={{marginBottom:14}}>
-                            <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Your email</label>
-                            <input type="email" placeholder="you@company.com" value={waitlistEmail}
-                              onChange={e=>setWaitlistEmail(e.target.value)}
-                              onKeyDown={e=>e.key==='Enter'&&submitWaitlist()}
-                              style={{width:'100%',padding:'11px 14px',border:'1px solid #E5E7EB',borderRadius:8,fontSize:14,color:'#111827',background:'#F9FAFB'}}/>
+                        <button className="bp" onClick={submitWaitlist} disabled={!waitlistEmail.trim()||waitlistWorking}
+                          style={{width:'100%',padding:'12px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                          {waitlistWorking?<><span className="spinner"/>Submitting…</>:'Notify me →'}
+                        </button>
+                      </div>
+                      <div style={{background:'#F5F3FF',border:'1px solid #DDD6FE',borderRadius:12,padding:'16px 20px',marginBottom:20}}>
+                        <p style={{fontSize:12,fontWeight:700,color:'#6D28D9',marginBottom:10}}>What you have already unlocked</p>
+                        {['Detailed score breakdowns with AI coaching','Role and interview guides for SA, FDE, FDPM, TPM','Multiple choice practice, always free'].map((b,i)=>(
+                          <div key={i} style={{display:'flex',gap:8,marginBottom:i<2?6:0}}>
+                            <span style={{color:'#7C3AED',fontWeight:700}}>✓</span>
+                            <span style={{fontSize:13,color:'#4C1D95'}}>{b}</span>
                           </div>
-                          <button className="bp" onClick={submitWaitlist} disabled={!waitlistEmail.trim()||waitlistWorking}
-                            style={{width:'100%',padding:'12px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-                            {waitlistWorking?<><span className="spinner"/>Submitting…</>:'Notify me →'}
-                          </button>
-                        </div>
-                        <div style={{background:'#F5F3FF',border:'1px solid #DDD6FE',borderRadius:12,padding:'16px 20px',marginBottom:20}}>
-                          <p style={{fontSize:12,fontWeight:700,color:'#6D28D9',marginBottom:10}}>What you have already unlocked</p>
-                          {['Detailed score breakdowns with AI coaching','Role and interview guides for SA, FDE, FDPM, TPM','Multiple choice practice, always free'].map((b,i)=>(
-                            <div key={i} style={{display:'flex',gap:8,marginBottom:i<2?6:0}}>
-                              <span style={{color:'#7C3AED',fontWeight:700}}>✓</span>
-                              <span style={{fontSize:13,color:'#4C1D95'}}>{b}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <button className="bg" onClick={()=>setPage('home')} style={{width:'100%',padding:'12px',fontSize:14}}>← Keep browsing</button>
-                      </>
-                    )}
-                  </div>
-                );
-              })()}
+                        ))}
+                      </div>
+                      <button className="bg" onClick={()=>setPage('home')} style={{width:'100%',padding:'12px',fontSize:14}}>← Keep browsing</button>
+                    </>
+                  )}
+                </div>
+              )}
 
               {page==='results-gate' && pendingInterview && (
                 <div style={{maxWidth:480,margin:'0 auto',padding:'48px 24px'}}>
