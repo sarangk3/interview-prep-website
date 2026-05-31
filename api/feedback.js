@@ -14,39 +14,44 @@ async function logToAirtable(record) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
-  // REQUIRE LOGIN — no anonymous AI access (prevents cost abuse)
+  // Allow anonymous users — gate is handled client-side
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Please sign in to get AI feedback. Multiple choice mode works without an account.' });
+  let user = null;
+  let isPro = false;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: { user: u } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (u) {
+      user = u;
+      const { data: prof } = await supabase.from('profiles').select('is_pro,pro_expires_at').eq('id', u.id).single();
+      isPro = prof?.is_pro && (!prof?.pro_expires_at || new Date(prof.pro_expires_at) > new Date());
+    }
   }
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-
-  const { data: { user }, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (error || !user) return res.status(401).json({ error: 'Session expired. Please sign in again.' });
-
-  // Check pro status
-  const { data: prof } = await supabase.from('profiles').select('is_pro,pro_expires_at').eq('id', user.id).single();
-  const isPro = prof?.is_pro && (!prof?.pro_expires_at || new Date(prof.pro_expires_at) > new Date());
+  // Per-user daily rate limit (logged-in users only)
   const limit = isPro ? PRO_LIMIT : FREE_LIMIT;
-
-  // Per-user daily rate limit (Supabase — survives serverless cold starts)
-  const today = new Date().toISOString().split('T')[0];
-  const { data: usage } = await supabase.from('daily_usage').select('ai_answers').eq('user_id', user.id).eq('date', today).single();
-  const count = usage?.ai_answers || 0;
-
-  if (count >= limit) {
-    return res.status(429).json({ error: isPro
-      ? 'Unusual usage detected. Please try again shortly.'
-      : `You've used all ${FREE_LIMIT} free AI answers for today. Upgrade to Pro for unlimited, or use Multiple Choice mode.`
-    });
+  if (user) {
+    const supabaseClient = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const today = new Date().toISOString().split('T')[0];
+    const { data: usage } = await supabaseClient.from('daily_usage').select('ai_answers').eq('user_id', user.id).eq('date', today).single();
+    const count = usage?.ai_answers || 0;
+    if (count >= limit) {
+      return res.status(429).json({ error: isPro
+        ? 'Unusual usage detected. Please try again shortly.'
+        : `You've used all ${FREE_LIMIT} free AI answers for today.`
+      });
+    }
+    await supabaseClient.from('daily_usage').upsert({ user_id: user.id, date: today, ai_answers: count + 1 }, { onConflict: 'user_id,date' });
   }
-
-  await supabase.from('daily_usage').upsert({ user_id: user.id, date: today, ai_answers: count + 1 }, { onConflict: 'user_id,date' });
 
   const { meta = {}, answer = '' } = req.body;
   const { role = '', industry = '', question = '', sessionId = '' } = meta;
