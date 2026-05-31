@@ -446,63 +446,80 @@ export default function InterviewPrepApp() {
 
   const MOCK_TURNS = 5;
 
+  // Role-to-voice preferences — distinct voice per role across platforms
+  const ROLE_VOICES = {
+    'AI Solutions Architect': {
+      mac: ['Samantha', 'Aaron'],
+      chrome: ['Google US English'],
+      windows: ['Microsoft Aria Online (Natural)', 'Microsoft Aria'],
+      fallback: { lang: 'en-US', gender: 'female' },
+    },
+    'Forward Deployed Engineer': {
+      mac: ['Daniel', 'Fred'],
+      chrome: ['Google UK English Male'],
+      windows: ['Microsoft Guy Online (Natural)', 'Microsoft Guy', 'Microsoft David'],
+      fallback: { lang: 'en-GB', gender: 'male' },
+    },
+    'Forward Deployed Product Manager': {
+      mac: ['Karen', 'Nicky'],
+      chrome: ['Google Australian English', 'Google UK English Female'],
+      windows: ['Microsoft Jenny Online (Natural)', 'Microsoft Jenny', 'Microsoft Zira'],
+      fallback: { lang: 'en-AU', gender: 'female' },
+    },
+    'Technical Program Manager': {
+      mac: ['Moira', 'Rishi'],
+      chrome: ['Google UK English Female', 'Google US English'],
+      windows: ['Microsoft Aria Online (Natural)', 'Microsoft Aria', 'Microsoft David'],
+      fallback: { lang: 'en-IE', gender: 'male' },
+    },
+  };
+
+  const fallbackTTS = (text, speakRole) => {
+    if (!window.speechSynthesis) return;
+
+    const doSpeak = (voices) => {
+      const clean = text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n+/g,' ');
+      const utt = new SpeechSynthesisUtterance(clean);
+      utt.rate = 0.90; utt.pitch = 1.0; utt.volume = 1.0;
+
+      const roleVoicePrefs = ROLE_VOICES[speakRole] || ROLE_VOICES['AI Solutions Architect'];
+      const allNames = [...(roleVoicePrefs.mac || []), ...(roleVoicePrefs.chrome || []), ...(roleVoicePrefs.windows || [])];
+
+      // Try to find any matching voice from our preference list
+      let picked = null;
+      for (const name of allNames) {
+        picked = voices.find(v => v.name.includes(name));
+        if (picked) break;
+      }
+      // Fallback: any en-US voice that isn't Compact (Compact = very robotic)
+      if (!picked) picked = voices.find(v => v.lang === 'en-US' && !v.name.includes('Compact') && v.localService);
+      if (!picked) picked = voices.find(v => v.lang.startsWith('en') && !v.name.includes('Compact'));
+
+      if (picked) utt.voice = picked;
+      utt.onstart = () => setTtsPlaying(true);
+      utt.onend = () => setTtsPlaying(false);
+      utt.onerror = () => setTtsPlaying(false);
+      window.speechSynthesis.speak(utt);
+    };
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      doSpeak(voices);
+    } else {
+      // Voices may not be loaded yet — wait for them
+      window.speechSynthesis.onvoiceschanged = () => {
+        doSpeak(window.speechSynthesis.getVoices());
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+    }
+  };
+
   const speakText = async (text, roleOverride) => {
     if (!ttsEnabled) return;
     stopSpeech();
     const speakRole = roleOverride || role;
-
-    // Call ElevenLabs via Vercel serverless function
-    try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, role: speakRole, company }),
-      });
-      if (res.ok && res.headers.get('content-type')?.includes('audio')) {
-        const blob = await res.blob();
-        if (blob.size > 100) {
-          const url = URL.createObjectURL(blob);
-          const audio = new Audio(url);
-          audio.onplay = () => setTtsPlaying(true);
-          audio.onended = () => { setTtsPlaying(false); URL.revokeObjectURL(url); };
-          audio.onerror = () => { setTtsPlaying(false); URL.revokeObjectURL(url); fallbackTTS(text); };
-          window._ttsAudio = audio;
-          await audio.play();
-          return;
-        }
-      }
-    } catch(e) {
-      console.warn('ElevenLabs TTS failed, using browser voice:', e.message);
-    }
-
-    fallbackTTS(text);
-  };
-
-  const fallbackTTS = (text) => {
-    if (!window.speechSynthesis) return;
-    const clean = text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n+/g,' ');
-    const utt = new SpeechSynthesisUtterance(clean);
-    utt.rate = 0.90;
-    utt.pitch = 1.0;
-    utt.volume = 1.0;
-
-    const voices = window.speechSynthesis.getVoices();
-    // Priority order: best natural-sounding voices across platforms
-    const preferred = voices.find(v => v.name === 'Samantha')                    // Mac - best
-      || voices.find(v => v.name === 'Daniel')                                    // Mac UK - good
-      || voices.find(v => v.name === 'Karen')                                     // Mac AU
-      || voices.find(v => v.name.includes('Google US English'))                   // Chrome
-      || voices.find(v => v.name.includes('Google UK English Female'))            // Chrome UK
-      || voices.find(v => v.name.includes('Microsoft Aria'))                      // Windows - best
-      || voices.find(v => v.name.includes('Microsoft Jenny'))                     // Windows
-      || voices.find(v => v.lang === 'en-US' && v.localService && !v.name.includes('Compact'))
-      || voices.find(v => v.lang === 'en-US');
-
-    if (preferred) utt.voice = preferred;
-    utt.onstart = () => setTtsPlaying(true);
-    utt.onend = () => setTtsPlaying(false);
-    utt.onerror = () => setTtsPlaying(false);
-    window.speechSynthesis.speak(utt);
+    // Use browser TTS directly — distinct voice per role
+    fallbackTTS(text, speakRole);
   };
 
   const stopSpeech = () => {
