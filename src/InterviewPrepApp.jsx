@@ -262,6 +262,8 @@ export default function InterviewPrepApp() {
   const [waitlistEmail,setWaitlistEmail]     = useState('');
   const [waitlistSent,setWaitlistSent]       = useState(false);
   const [waitlistWorking,setWaitlistWorking] = useState(false);
+  const [showEmailGate,setShowEmailGate]     = useState(false);
+  const [emailGatePendingRole,setEmailGatePendingRole] = useState(null);
   const [userName,setUserName]               = useState(()=>localStorage.getItem('user_name')||'');
   const [showNamePrompt,setShowNamePrompt]   = useState(false);
   const [pendingRole,setPendingRole]         = useState(null);
@@ -537,6 +539,12 @@ export default function InterviewPrepApp() {
   };
 
   const startInterview=(r,m)=>{
+    // Gate: second attempt for anonymous users requires email
+    if(!user && format!=='mc' && !hasFreeTrialLeft(format)) {
+      setEmailGatePendingRole(r);
+      setShowEmailGate(true);
+      return;
+    }
 
     // Gate: more than 1 mock requires Pro
     if(format==='mock' && user && !isPro && (profile?.mocks_completed||0) >= 1) {
@@ -732,9 +740,9 @@ export default function InterviewPrepApp() {
     const score=fmt2==='mc'?Math.round((responses.filter(r=>r.isCorrect).length/responses.length)*10):Math.round(responses.reduce((s,r)=>s+r.feedback.overall,0)/responses.length);
     const iv={role,mode,format:fmt2,industry,date:new Date().toISOString(),score,responses};
     setResults(responses);
-    markFreeTrialUsed(fmt2); // mark free trial used after completion
-    if(user){ saveInterview(iv); setPage('results'); }
-    else { setPendingInterview(iv); setPage('results-gate'); }
+    markFreeTrialUsed(fmt2);
+    if(user) saveInterview(iv);
+    setPage('results'); // always show results, logged in or not
   };
 
   const buildTranscript=()=>{
@@ -791,6 +799,29 @@ export default function InterviewPrepApp() {
       }, 2000);
     } catch(e) { console.error(e); }
     setFeedbackWorking(false);
+  };
+
+  const submitEmailGate = async () => {
+    if (!waitlistEmail.trim()) return;
+    setWaitlistWorking(true);
+    try {
+      await fetch('/api/feedback-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'Email Gate',
+          message: 'User submitted email to continue practicing.',
+          email: waitlistEmail.trim(),
+          page,
+        }),
+      });
+      // Grant access — reset free trial so they can continue
+      localStorage.removeItem('free_written_done');
+      localStorage.removeItem('free_mock_done');
+      setShowEmailGate(false);
+      doStartInterview(emailGatePendingRole, 'full');
+    } catch(e) { console.error(e); }
+    setWaitlistWorking(false);
   };
 
   const submitWaitlist = async () => {
@@ -1019,6 +1050,38 @@ export default function InterviewPrepApp() {
             </button>
             <button onClick={()=>{setShowNamePrompt(false);setUserName('');doStartInterview(pendingRole,'full');}} style={{background:'none',border:'none',cursor:'pointer',width:'100%',marginTop:10,fontSize:13,color:'#9CA3AF',textAlign:'center'}}>
               Skip
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Email gate (second attempt, anonymous) ── */}
+      {showEmailGate && (
+        <div style={{position:'fixed',inset:0,zIndex:600,background:'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
+          <div style={{background:'#fff',borderRadius:20,padding:36,maxWidth:400,width:'100%',boxShadow:'0 24px 80px rgba(0,0,0,0.2)'}}>
+            <div style={{textAlign:'center',marginBottom:24}}>
+              <div style={{width:52,height:52,borderRadius:14,background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff',margin:'0 auto 16px'}}>AI</div>
+              <h2 style={{fontSize:20,fontWeight:700,color:'#111827',marginBottom:8}}>Enter your email to continue</h2>
+              <p style={{fontSize:14,color:'#6B7280',lineHeight:1.6}}>You have used your free session. Enter your email to keep practicing — no password needed.</p>
+            </div>
+            <div style={{marginBottom:14}}>
+              <input type="email" placeholder="you@company.com" autoFocus
+                value={waitlistEmail}
+                onChange={e=>setWaitlistEmail(e.target.value)}
+                onKeyDown={async e=>{
+                  if(e.key==='Enter'&&waitlistEmail.trim()){
+                    await submitEmailGate();
+                  }
+                }}
+                style={{width:'100%',padding:'12px 14px',border:'1px solid #E5E7EB',borderRadius:10,fontSize:15,color:'#111827',background:'#F9FAFB'}}/>
+            </div>
+            <button className="bp" onClick={submitEmailGate} disabled={!waitlistEmail.trim()||waitlistWorking}
+              style={{width:'100%',padding:'13px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:10}}>
+              {waitlistWorking?<><span className="spinner"/>Just a moment…</>:'Continue →'}
+            </button>
+            <button onClick={()=>setShowEmailGate(false)}
+              style={{background:'none',border:'none',cursor:'pointer',width:'100%',fontSize:13,color:'#9CA3AF',textAlign:'center'}}>
+              Maybe later
             </button>
           </div>
         </div>
