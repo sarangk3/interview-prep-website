@@ -894,16 +894,19 @@ export default function InterviewPrepApp() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: SAMPLE_Q,
+          meta: {
+            question: SAMPLE_Q,
+            role: 'Forward Deployed Engineer',
+            industry: 'General',
+            sessionId: 'sample-' + Math.random().toString(36).slice(2),
+          },
           answer: sampleAnswer,
-          role: 'Forward Deployed Engineer',
-          industry: 'General',
-          sessionId: 'sample-' + Math.random().toString(36).slice(2),
         }),
       });
       const data = await resp.json();
       if (data.feedback) { setSampleFeedback(data.feedback); setSampleDone(true); }
-    } catch(e) { console.error(e); }
+      else console.error('Sample feedback error:', data);
+    } catch(e) { console.error('Sample question error:', e); }
     setSampleLoading(false);
   };
 
