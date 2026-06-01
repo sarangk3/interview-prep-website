@@ -266,6 +266,10 @@ export default function InterviewPrepApp() {
   const [emailGatePendingRole,setEmailGatePendingRole] = useState(null);
   const [emailGateStep,setEmailGateStep]     = useState('email'); // 'email' | 'otp'
   const [emailGateOtp,setEmailGateOtp]       = useState('');
+  const [sampleAnswer,setSampleAnswer]       = useState('');
+  const [sampleFeedback,setSampleFeedback]   = useState(null);
+  const [sampleLoading,setSampleLoading]     = useState(false);
+  const [sampleDone,setSampleDone]           = useState(false);
   const [userName,setUserName]               = useState(()=>localStorage.getItem('user_name')||'');
   const [showNamePrompt,setShowNamePrompt]   = useState(false);
   const [pendingRole,setPendingRole]         = useState(null);
@@ -878,6 +882,29 @@ export default function InterviewPrepApp() {
       }
     } catch(e) { setAuthError('Verification failed. Please try again.'); }
     setWaitlistWorking(false);
+  };
+
+  const SAMPLE_Q = "A customer tells you the AI assistant your team deployed keeps giving wrong answers. They're frustrated and losing trust. What's your first move?";
+
+  const submitSampleQuestion = async () => {
+    if (!sampleAnswer.trim() || sampleLoading) return;
+    setSampleLoading(true);
+    try {
+      const resp = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: SAMPLE_Q,
+          answer: sampleAnswer,
+          role: 'Forward Deployed Engineer',
+          industry: 'General',
+          sessionId: 'sample-' + Math.random().toString(36).slice(2),
+        }),
+      });
+      const data = await resp.json();
+      if (data.feedback) { setSampleFeedback(data.feedback); setSampleDone(true); }
+    } catch(e) { console.error(e); }
+    setSampleLoading(false);
   };
 
   const submitWaitlist = async () => {
@@ -2043,10 +2070,25 @@ export default function InterviewPrepApp() {
 
               {page==='results-gate' && pendingInterview && (
                 <div style={{maxWidth:440,margin:'0 auto',padding:'48px 24px'}}>
-                  <div style={{textAlign:'center',marginBottom:28}}>
-                    <div style={{width:72,height:72,borderRadius:'50%',background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,fontWeight:700,color:'#fff',margin:'0 auto 20px',boxShadow:'0 8px 32px rgba(99,102,241,.3)'}}>✓</div>
-                    <h1 style={{fontSize:24,fontWeight:700,color:'#111827',marginBottom:8}}>Your results are ready</h1>
-                    <p style={{color:'#6B7280',fontSize:14,lineHeight:1.6}}>Enter your email to see your full score and coaching feedback. We'll send a quick verification code.</p>
+                  {/* Score teaser */}
+                  <div style={{textAlign:'center',marginBottom:24}}>
+                    <div style={{width:80,height:80,borderRadius:'50%',background:'linear-gradient(135deg,#6366F1,#8B5CF6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'0 8px 32px rgba(99,102,241,.3)'}}>
+                      <span style={{fontSize:28,fontWeight:800,color:'#fff'}}>{pendingInterview.score}</span>
+                    </div>
+                    <h1 style={{fontSize:22,fontWeight:700,color:'#111827',marginBottom:6}}>You scored {pendingInterview.score}/10</h1>
+                    <p style={{color:'#6B7280',fontSize:14,lineHeight:1.6}}>Enter your email to unlock your full feedback — what you did well, what to improve, and coaching on the ideal answer.</p>
+                  </div>
+                  {/* Blurred preview */}
+                  <div style={{position:'relative',marginBottom:20,borderRadius:12,overflow:'hidden'}}>
+                    <div style={{filter:'blur(4px)',pointerEvents:'none',background:'#F5F3FF',border:'1px solid #DDD6FE',padding:'16px 20px',borderRadius:12}}>
+                      <p style={{fontSize:12,fontWeight:700,color:'#6D28D9',marginBottom:8}}>STRENGTHS</p>
+                      <p style={{fontSize:13,color:'#4C1D95',marginBottom:12}}>You demonstrated strong structured thinking and clearly articulated your diagnostic approach before jumping to solutions.</p>
+                      <p style={{fontSize:12,fontWeight:700,color:'#D97706',marginBottom:8}}>TO IMPROVE</p>
+                      <p style={{fontSize:13,color:'#92400E'}}>Consider quantifying the impact of your proposed solution and addressing how you would measure success after implementation.</p>
+                    </div>
+                    <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(245,243,255,0.5)'}}>
+                      <div style={{background:'#fff',borderRadius:20,padding:'10px 20px',boxShadow:'0 4px 20px rgba(0,0,0,0.12)',fontSize:13,fontWeight:600,color:'#6366F1'}}>🔒 Enter email to unlock</div>
+                    </div>
                   </div>
                   {authError&&<div style={{background:'#FEF2F2',border:'1px solid #FECACA',borderRadius:8,padding:'10px 14px',marginBottom:14,fontSize:13,color:'#991B1B'}}>{authError}</div>}
                   {emailGateStep==='email' ? (
@@ -2060,7 +2102,7 @@ export default function InterviewPrepApp() {
                       </div>
                       <button className="bp" onClick={submitResultsGate} disabled={!waitlistEmail.trim()||waitlistWorking}
                         style={{width:'100%',padding:'12px',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-                        {waitlistWorking?<><span className="spinner"/>Sending code…</>:'Send verification code →'}
+                        {waitlistWorking?<><span className="spinner"/>Sending code…</>:'Unlock my results →'}
                       </button>
                       <div style={{display:'flex',alignItems:'center',gap:10,margin:'16px 0'}}>
                         <div style={{flex:1,height:1,background:'#E5E7EB'}}/><span style={{fontSize:12,color:'#9CA3AF'}}>or</span><div style={{flex:1,height:1,background:'#E5E7EB'}}/>
@@ -2108,6 +2150,55 @@ export default function InterviewPrepApp() {
                       </button>
                     </p>
                   </div>
+
+                  {/* ── Warm-up sample question ── */}
+                  {!user && (
+                    <div style={{background:'linear-gradient(135deg,#F5F3FF,#EEF2FF)',border:'1px solid #DDD6FE',borderRadius:16,padding:'24px 28px',marginBottom:28}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                        <span style={{background:'#6366F1',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20}}>TRY IT FREE</span>
+                        <span style={{fontSize:13,color:'#6D28D9',fontWeight:600}}>No account needed</span>
+                      </div>
+                      <p style={{fontSize:16,fontWeight:600,color:'#111827',marginBottom:6,lineHeight:1.5}}>{SAMPLE_Q}</p>
+                      <p style={{fontSize:12,color:'#9CA3AF',marginBottom:14}}>Typical of a Forward Deployed Engineer interview — no right answer, just show your thinking.</p>
+                      {!sampleDone ? (
+                        <>
+                          <textarea value={sampleAnswer} onChange={e=>setSampleAnswer(e.target.value)}
+                            onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&sampleAnswer.trim().length>10){e.preventDefault();submitSampleQuestion();}}}
+                            placeholder="Type your answer here... (Enter to submit)"
+                            style={{width:'100%',minHeight:100,padding:'12px 14px',border:'1px solid #C4B5FD',borderRadius:10,fontSize:14,color:'#111827',background:'rgba(255,255,255,0.8)',lineHeight:1.6,marginBottom:12,resize:'vertical'}}/>
+                          <button onClick={submitSampleQuestion} disabled={sampleAnswer.trim().length<10||sampleLoading}
+                            style={{padding:'11px 24px',background:'#6366F1',color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8}}>
+                            {sampleLoading?<><span className="spinner"/>Scoring your answer…</>:'See how you did →'}
+                          </button>
+                        </>
+                      ) : sampleFeedback && (
+                        <div style={{marginTop:4}}>
+                          <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:14}}>
+                            <div style={{width:56,height:56,borderRadius:'50%',background:'#6366F1',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                              <span style={{fontSize:20,fontWeight:700,color:'#fff'}}>{sampleFeedback.overall}</span>
+                            </div>
+                            <div>
+                              <p style={{fontSize:15,fontWeight:700,color:'#111827',marginBottom:2}}>You scored {sampleFeedback.overall}/10</p>
+                              <p style={{fontSize:13,color:'#6B7280'}}>{sampleFeedback.summary}</p>
+                            </div>
+                          </div>
+                          {sampleFeedback.strengths?.[0] && (
+                            <div style={{background:'rgba(255,255,255,0.7)',borderRadius:10,padding:'12px 14px',marginBottom:10}}>
+                              <p style={{fontSize:12,fontWeight:700,color:'#059669',marginBottom:4}}>✓ What you did well</p>
+                              <p style={{fontSize:13,color:'#374151'}}>{sampleFeedback.strengths[0]}</p>
+                            </div>
+                          )}
+                          {sampleFeedback.improvements?.[0] && (
+                            <div style={{background:'rgba(255,255,255,0.7)',borderRadius:10,padding:'12px 14px',marginBottom:14}}>
+                              <p style={{fontSize:12,fontWeight:700,color:'#D97706',marginBottom:4}}>↑ One thing to improve</p>
+                              <p style={{fontSize:13,color:'#374151'}}>{sampleFeedback.improvements[0]}</p>
+                            </div>
+                          )}
+                          <p style={{fontSize:13,color:'#6D28D9',fontWeight:600}}>Want a full interview with 5 questions and detailed scoring? Pick a role below ↓</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* Format */}
                   <div className="fu d1" style={{marginBottom:24}}>
                     <p style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:10}}>Answer format</p>
