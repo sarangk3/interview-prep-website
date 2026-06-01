@@ -221,7 +221,7 @@ const Sidebar = ({ page, setPage, interviews, user, onLogout, onSignIn, isPro, o
         <div style={{background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:10,padding:'10px 12px'}}>
           <p style={{fontSize:12,fontWeight:600,color:'#15803D',marginBottom:2}}>{planTitle}</p>
           <p style={{fontSize:11,color:'#6B7280'}}>{planLabel}</p>
-          {user && !isPro && <button onClick={onUpgrade} style={{marginTop:6,background:'#6366F1',border:'none',borderRadius:6,color:'#fff',fontSize:11,fontWeight:600,padding:'4px 10px',cursor:'pointer',width:'100%'}}>Upgrade to Pro</button>}
+          {user && !isPro && null}
         </div>
         <button onClick={onFeedback} style={{width:'100%',padding:'9px 12px',background:'none',border:'1px solid #E5E7EB',borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:500,color:'#6B7280',textAlign:'left',marginBottom:4}}>
           Share feedback or report a bug
