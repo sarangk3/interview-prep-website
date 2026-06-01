@@ -177,8 +177,8 @@ const Sidebar = ({ page, setPage, interviews, user, onLogout, onSignIn, isPro, o
   const st = interviews.length;
   const avg = calcAvg(interviews);
   const avgLabel = avg !== null ? (avg + ' out of 10') : '';
-  const planLabel = (user && isPro) ? 'Unlimited everything' : '1 free mock · 1 free written · MC unlimited';
-  const planTitle = (user && isPro) ? 'Pro' : 'Free Access';
+  const planLabel = isPro ? 'Unlimited everything' : null;
+  const planTitle = isPro ? 'Pro' : null;
   return (
     <div className="sb" style={{width:220,background:'#fff',borderRight:'1px solid #E5E7EB',display:'flex',flexDirection:'column',padding:'0 10px',flexShrink:0}}>
       <div style={{padding:'20px 6px 20px',borderBottom:'1px solid #F3F4F6'}}>
@@ -218,11 +218,12 @@ const Sidebar = ({ page, setPage, interviews, user, onLogout, onSignIn, isPro, o
             Sign in or Create account
           </button>
         )}
-        <div style={{background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:10,padding:'10px 12px'}}>
-          <p style={{fontSize:12,fontWeight:600,color:'#15803D',marginBottom:2}}>{planTitle}</p>
-          <p style={{fontSize:11,color:'#6B7280'}}>{planLabel}</p>
-          {user && !isPro && null}
-        </div>
+        {isPro && (
+          <div style={{background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:10,padding:'10px 12px'}}>
+            <p style={{fontSize:12,fontWeight:600,color:'#15803D',marginBottom:2}}>{planTitle}</p>
+            <p style={{fontSize:11,color:'#6B7280'}}>{planLabel}</p>
+          </div>
+        )}
         <button onClick={onFeedback} style={{width:'100%',padding:'9px 12px',background:'none',border:'1px solid #E5E7EB',borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:500,color:'#6B7280',textAlign:'left',marginBottom:4}}>
           Share feedback or report a bug
         </button>
