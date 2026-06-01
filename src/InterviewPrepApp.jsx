@@ -904,8 +904,15 @@ export default function InterviewPrepApp() {
         }),
       });
       const data = await resp.json();
-      if (data.feedback) { setSampleFeedback(data.feedback); setSampleDone(true); }
-      else console.error('Sample feedback error:', data);
+      // API returns { content: [{ text: JSON.stringify(fb) }] }
+      const raw = data?.content?.[0]?.text || data?.feedback;
+      if (raw) {
+        const fb = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        setSampleFeedback(fb);
+        setSampleDone(true);
+      } else {
+        console.error('Unexpected response:', data);
+      }
     } catch(e) { console.error('Sample question error:', e); }
     setSampleLoading(false);
   };
