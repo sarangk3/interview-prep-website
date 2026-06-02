@@ -885,7 +885,20 @@ export default function InterviewPrepApp() {
     setWaitlistWorking(false);
   };
 
-  const SAMPLE_Q = "A customer tells you the AI assistant your team deployed keeps giving wrong answers. They're frustrated and losing trust. What's your first move?";
+  const SAMPLE_QUESTIONS = [
+    "A customer tells you the AI assistant your team deployed keeps giving wrong answers. They're frustrated and losing trust. What's your first move?",
+    "You're three weeks into a customer engagement and the stakeholders keep changing what they want. The deadline hasn't moved. How do you handle it?",
+    "A client wants to use AI to automate a process, but their data is messy and undocumented. Where do you start?",
+    "Your AI model works great in testing but underperforms in production. Walk me through how you diagnose the problem.",
+    "A customer's legal team is blocking your go-live over AI liability concerns. The business team is pushing hard to launch. What do you do?",
+    "You've been asked to pitch an AI solution to a room of executives who are skeptical of AI hype. How do you approach it?",
+    "Your team is behind schedule on a critical program. Leadership wants to add more engineers to speed things up. What's your response?",
+    "A customer says your competitor's product does everything yours does but cheaper. How do you respond?",
+    "You discover mid-project that a key assumption you built your solution around was wrong. What do you do?",
+    "A non-technical customer asks you to explain why your AI system sometimes gets things wrong. How do you explain it?",
+  ];
+
+  const [SAMPLE_Q] = useState(() => SAMPLE_QUESTIONS[Math.floor(Math.random() * SAMPLE_QUESTIONS.length)]);
 
   const submitSampleQuestion = async () => {
     if (!sampleAnswer.trim() || sampleLoading) return;
