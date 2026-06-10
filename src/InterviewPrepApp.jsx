@@ -900,6 +900,18 @@ export default function InterviewPrepApp() {
 
   const [SAMPLE_Q] = useState(() => SAMPLE_QUESTIONS[Math.floor(Math.random() * SAMPLE_QUESTIONS.length)]);
 
+  const [shareCopied,setShareCopied] = useState(false);
+  const shareScore = (score, roleName) => {
+    const text = `I scored ${score}/10 on a ${roleName} mock interview at ai-interview.solutions — free AI interview practice for FDE, AI SA, FDPM, and TPM roles. Try it: https://ai-interview.solutions`;
+    if (navigator.share) {
+      navigator.share({ text }).catch(()=>{});
+    } else {
+      navigator.clipboard.writeText(text);
+      setShareCopied(true);
+      setTimeout(()=>setShareCopied(false), 2000);
+    }
+  };
+
   const submitSampleQuestion = async () => {
     if (!sampleAnswer.trim() || sampleLoading) return;
     setSampleLoading(true);
@@ -2173,6 +2185,14 @@ export default function InterviewPrepApp() {
                         Read the role and interview guides first
                       </button>
                     </p>
+                    <div style={{display:'flex',gap:18,flexWrap:'wrap',marginTop:16}}>
+                      {[['70+','interview questions'],['4','specialized roles'],['7','target companies'],['100%','free to try']].map(([n,l])=>(
+                        <div key={l} style={{display:'flex',alignItems:'baseline',gap:6}}>
+                          <span style={{fontSize:17,fontWeight:700,color:'#6366F1'}}>{n}</span>
+                          <span style={{fontSize:12,color:'#9CA3AF'}}>{l}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* ── Warm-up sample question ── */}
@@ -2326,6 +2346,9 @@ export default function InterviewPrepApp() {
                         <div style={{fontSize:40,fontWeight:700,color:oc,lineHeight:1}}>{mockScore.overall}</div>
                         <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>out of 10</div>
                         <div style={{fontSize:12,fontWeight:600,color:oc,marginTop:4}}>{ol}</div>
+                        <button onClick={()=>shareScore(mockScore.overall, role)} style={{marginTop:10,padding:'6px 14px',border:'1px solid #E5E7EB',borderRadius:8,background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#6366F1',whiteSpace:'nowrap'}}>
+                          {shareCopied?'✓ Copied!':'Share my score'}
+                        </button>
                       </div>
                     </div>
                     {/* 5-dimension scores */}
@@ -2434,6 +2457,9 @@ export default function InterviewPrepApp() {
                         <div style={{fontSize:40,fontWeight:700,color:oc,lineHeight:1}}>{avg}</div>
                         <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>out of 10</div>
                         <div style={{fontSize:12,fontWeight:600,color:oc,marginTop:4}}>{ol}</div>
+                        <button onClick={()=>shareScore(avg, role)} style={{marginTop:10,padding:'6px 14px',border:'1px solid #E5E7EB',borderRadius:8,background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#6366F1',whiteSpace:'nowrap'}}>
+                          {shareCopied?'✓ Copied!':'Share my score'}
+                        </button>
                       </div>
                     </div>
                     {!isMCr&&(
